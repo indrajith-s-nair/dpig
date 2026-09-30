@@ -1,0 +1,50 @@
+{
+  "ai_auto_triage": {
+    "name": "AI Auto-Triage & Classification",
+    "desc": "Google Gemini 3.8 Flash language detection, urgency scoring, and automated department routing.",
+    "subsystem": "AI Intelligence",
+    "enabled": true
+  },
+  "digipin_geocoding": {
+    "name": "India Post DIGIPIN Engine",
+    "desc": "National 4m\u00d74m alphanumeric geospatial grid encoding, decoding, and bounding box validation.",
+    "subsystem": "Spatial Intelligence",
+    "enabled": true
+  },
+  "duplicate_clustering": {
+    "name": "Spatial Duplicate Clustering",
+    "desc": "PostGIS 350m / 14-day proximity grouping to prevent ticket duplication and officer fatigue.",
+    "subsystem": "Spatial Intelligence",
+    "enabled": true
+  },
+  "audit_hash_chain": {
+    "name": "Tamper-Evident Audit Hash Chain",
+    "desc": "Cryptographic SHA-256 blockchain-style state transition ledgers and Merkle proofs for every ticket.",
+    "subsystem": "Audit & Governance",
+    "enabled": true
+  },
+  "sla_escalation_watchdog": {
+    "name": "Automated SLA Breach Watchdog",
+    "desc": "Celery Beat background watchdog monitoring countdowns and triggering multi-tier escalation.",
+    "subsystem": "Case Lifecycle",
+    "enabled": true
+  },
+  "citizen_notifications": {
+    "name": "Citizen Lifecycle Notifications",
+    "desc": "Automated transactional email and SMS dispatches upon submission, inspection, and resolution.",
+    "subsystem": "Citizen Outcomes",
+    "enabled": true
+  },
+  "ai_capital_projects": {
+    "name": "Civic Digital Twin Synthesis",
+    "desc": "Synthesizes recurring grievance clusters into prioritized capital infrastructure projects with INR budgets.",
+    "subsystem": "Policy Intelligence",
+    "enabled": true
+  },
+  "open311_feed": {
+    "name": "Open311 & GeoJSON Public Feeds",
+    "desc": "Publicly queryable GeoJSON endpoint compliant with Open311 municipal data interoperability standards.",
+    "subsystem": "Interoperability",
+    "enabled": true
+  }
+}

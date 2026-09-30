@@ -1,0 +1,60 @@
+# ==============================================================================
+# Google Cloud Build Pipeline for DPIG Staging (<5k MAU)
+# Automated Build, Test, Cloud Run Container Deployment & Firebase Hosting Sync
+# ==============================================================================
+steps:
+  # 1. Build Docker image with build cache
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/dpig-repo/app:$COMMIT_SHA'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/dpig-repo/app:latest'
+      - '.'
+
+  # 2. Push image to Google Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/dpig-repo/app'
+
+  # 3. Deploy container to Google Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'dpig-staging'
+      - '--image=${_REGION}-docker.pkg.dev/$PROJECT_ID/dpig-repo/app:$COMMIT_SHA'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--port=8080'
+      - '--memory=1Gi'
+      - '--cpu=1'
+      - '--min-instances=0'
+      - '--max-instances=2'
+      - '--concurrency=80'
+      - '--timeout=300'
+      - '--update-env-vars=RUN_MIGRATIONS=true'
+
+  # 4. Deploy Firebase Hosting rewrites and CDN edge
+  - name: 'node:20-slim'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        npx -y firebase-tools@latest deploy --only hosting --project=$PROJECT_ID --token=$$FIREBASE_TOKEN
+    secretEnv: ['FIREBASE_TOKEN']
+
+images:
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/dpig-repo/app:$COMMIT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/dpig-repo/app:latest'
+
+substitutions:
+  _REGION: 'asia-south1'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

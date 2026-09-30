@@ -1,0 +1,38 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Celery
+celerybeat-schedule*
+celerybeat.pid
+
+# Django
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+media/
+
+# Environment & OS
+.DS_Store
+*.log
+.coverage
+htmlcov/
+.idea/
+.vscode/
+
+# Vercel
+.vercel/
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
