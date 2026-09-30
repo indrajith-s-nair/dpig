@@ -1,15 +1,26 @@
 {
   "version": 2,
-  "buildCommand": "bash build_files.sh",
-  "outputDirectory": "staticfiles",
-  "rewrites": [
+  "builds": [
     {
-      "source": "/static/(.*)",
-      "destination": "/static/$1"
+      "src": "dpig/wsgi.py",
+      "use": "@vercel/python"
     },
     {
-      "source": "/(.*)",
-      "destination": "/api/index.py"
+      "src": "build_files.sh",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "staticfiles"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "dpig/wsgi.py"
     }
   ]
 }
