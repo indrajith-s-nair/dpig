@@ -32,6 +32,9 @@ default_csrf_origins = [
     'https://*.web.app',
     'https://*.firebaseapp.com',
     'https://*.run.app',
+    'https://*.repl.co',
+    'https://*.replit.app',
+    'https://*.replit.dev',
 ]
 csrf_env = os.getenv('CSRF_TRUSTED_ORIGINS')
 if csrf_env:
