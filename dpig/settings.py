@@ -32,6 +32,8 @@ default_csrf_origins = [
     'https://*.web.app',
     'https://*.firebaseapp.com',
     'https://*.run.app',
+    'https://*.railway.app',
+    'https://*.up.railway.app',
     'https://*.repl.co',
     'https://*.replit.app',
     'https://*.replit.dev',

@@ -9,6 +9,26 @@ echo "==> [DPIG] Starting container with PORT=${PORT}..."
 # 1. Database readiness check
 if [ "${USE_SQLITE}" = "True" ] || [ "${USE_SQLITE}" = "true" ] || [ "${USE_SQLITE}" = "1" ]; then
     echo "==> [DPIG] Running with SQLite database engine."
+elif [ -n "${DATABASE_URL}" ]; then
+    echo "==> [DPIG] Verifying connection to DATABASE_URL..."
+    RETRIES=15
+    until python -c "
+import os, sys, psycopg2
+try:
+    psycopg2.connect(os.environ['DATABASE_URL'])
+    sys.exit(0)
+except Exception as e:
+    sys.exit(1)
+" 2>/dev/null || [ $RETRIES -le 0 ]; do
+        echo "Waiting for PostgreSQL via DATABASE_URL ($RETRIES retries left)..."
+        RETRIES=$((RETRIES-1))
+        sleep 2
+    done
+    if [ $RETRIES -le 0 ]; then
+        echo "Warning: Database check timed out. Proceeding anyway..."
+    else
+        echo "==> [DPIG] PostgreSQL database is ready via DATABASE_URL."
+    fi
 else
     # Only wait for TCP connection if host is not a unix domain socket (e.g. Cloud SQL socket)
     PG_HOST="${POSTGRES_HOST:-db}"

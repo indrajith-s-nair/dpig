@@ -11,6 +11,7 @@ import os
 import json
 from django.test import TestCase, Client
 from django.urls import reverse
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta

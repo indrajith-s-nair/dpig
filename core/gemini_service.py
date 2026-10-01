@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 
 def get_genai_client():
     """Initializes Google GenAI client if API key is present."""
+    import sys
+    if 'test' in sys.argv:
+        return None
     api_key = getattr(settings, 'GEMINI_API_KEY', None)
     if not api_key:
         return None

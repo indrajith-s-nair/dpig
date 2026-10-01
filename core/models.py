@@ -197,58 +197,62 @@ def find_officer_for_workflow_level(cluster, zone, department, level_code: str):
     - CL3: City Level 3 (Municipal Commissioner)
     - CM_OFFICE: Chief Minister's Executive Cell
     """
+    staff_profiles = UserProfile.objects.filter(cluster=cluster).exclude(role='CITIZEN')
+
     if level_code == 'DL1':
-        p = UserProfile.objects.filter(cluster=cluster, zone=zone, department=department, hierarchy_level=1).first()
+        p = staff_profiles.filter(zone=zone, department=department, hierarchy_level=1).first()
         if not p:
-            p = UserProfile.objects.filter(cluster=cluster, zone=zone, hierarchy_level=1).first()
+            p = staff_profiles.filter(zone=zone, role__in=['WARD_OFFICER', 'FIELD_STAFF']).first()
         if not p and department:
-            p = UserProfile.objects.filter(cluster=cluster, department=department, hierarchy_level=1).first()
+            p = staff_profiles.filter(department=department, role__in=['WARD_OFFICER', 'FIELD_STAFF']).first()
+        if not p and department:
+            p = staff_profiles.filter(department=department, role='DEPT_ADMIN').first()
         if not p:
-            p = UserProfile.objects.filter(cluster=cluster, zone=zone, role__in=['WARD_OFFICER', 'FIELD_STAFF']).first()
+            p = staff_profiles.filter(role__in=['WARD_OFFICER', 'FIELD_STAFF']).first()
         return p
 
     elif level_code == 'DL2':
-        p = UserProfile.objects.filter(cluster=cluster, zone=zone, department=department, hierarchy_level=2).first()
+        p = staff_profiles.filter(zone=zone, department=department, hierarchy_level=2).first()
         if not p:
-            p = UserProfile.objects.filter(cluster=cluster, zone=zone, hierarchy_level=2).first()
+            p = staff_profiles.filter(zone=zone, hierarchy_level=2).first()
         if not p and department:
-            p = UserProfile.objects.filter(cluster=cluster, department=department, hierarchy_level=2).first()
+            p = staff_profiles.filter(department=department, hierarchy_level=2).first()
         if not p:
-            p = UserProfile.objects.filter(cluster=cluster, zone=zone, role='ZONAL_OFFICER').first()
+            p = staff_profiles.filter(zone=zone, role='ZONAL_OFFICER').first()
         return p
 
     elif level_code == 'DL3':
-        p = UserProfile.objects.filter(cluster=cluster, zone=zone, hierarchy_level=3).first()
+        p = staff_profiles.filter(zone=zone, hierarchy_level=3).first()
         if not p:
-            p = UserProfile.objects.filter(cluster=cluster, zone=zone, role='ZONAL_OFFICER').first()
+            p = staff_profiles.filter(zone=zone, role='ZONAL_OFFICER').first()
         return p
 
     elif level_code == 'CL1':
-        p = UserProfile.objects.filter(cluster=cluster, department=department, hierarchy_level=4).first()
+        p = staff_profiles.filter(department=department, hierarchy_level=4).first()
         if not p:
-            p = UserProfile.objects.filter(cluster=cluster, hierarchy_level=4).first()
+            p = staff_profiles.filter(hierarchy_level=4).first()
         if not p:
-            p = UserProfile.objects.filter(cluster=cluster, hierarchy_level=5).first()
+            p = staff_profiles.filter(hierarchy_level=5).first()
         return p
 
     elif level_code == 'CL2':
-        p = UserProfile.objects.filter(cluster=cluster, hierarchy_level=5).first()
+        p = staff_profiles.filter(hierarchy_level=5).first()
         if not p:
-            p = UserProfile.objects.filter(cluster=cluster, role='COMMISSIONER').first()
+            p = staff_profiles.filter(role='COMMISSIONER').first()
         return p
 
     elif level_code == 'CL3':
-        p = UserProfile.objects.filter(cluster=cluster, hierarchy_level=6).first()
+        p = staff_profiles.filter(hierarchy_level=6).first()
         if not p:
-            p = UserProfile.objects.filter(cluster=cluster, role='COMMISSIONER').first()
+            p = staff_profiles.filter(role='COMMISSIONER').first()
         return p
 
     elif level_code == 'CM_OFFICE':
-        p = UserProfile.objects.filter(cluster=cluster, hierarchy_level=7).first()
+        p = staff_profiles.filter(hierarchy_level=7).first()
         if not p:
-            p = UserProfile.objects.filter(cluster=cluster, role='CM_OFFICE').first()
+            p = staff_profiles.filter(role='CM_OFFICE').first()
         if not p:
-            p = UserProfile.objects.filter(cluster=cluster, role='SUPERADMIN').first()
+            p = staff_profiles.filter(role='SUPERADMIN').first()
         return p
 
     return None
