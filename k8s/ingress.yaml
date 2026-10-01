@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dpig-ingress
+  namespace: dpig
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "25m"
+spec:
+  rules:
+    - host: dpig.gov.in
+      http:
+        paths:
+          - path: /webhook/
+            pathType: Prefix
+            backend:
+              service:
+                name: n8n-service
+                port:
+                  number: 5678
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dpig-web-service
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - dpig.gov.in
+      secretName: dpig-tls-cert

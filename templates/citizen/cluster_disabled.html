@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Municipal Administration Inactive - {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-xl p-8 sm:p-12 relative overflow-hidden">
+        <div class="w-20 h-20 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-amber-200 shadow-inner">
+            <i data-lucide="power-off" class="w-10 h-10"></i>
+        </div>
+
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200 mb-4">
+            <i data-lucide="alert-triangle" class="w-3.5 h-3.5 mr-1.5 text-amber-600"></i> Cluster Disabled / Maintenance Mode
+        </span>
+
+        <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Municipal Services Temporarily Inactive
+        </h1>
+
+        <p class="text-sm sm:text-base text-slate-600 mt-3 leading-relaxed max-w-xl mx-auto">
+            The civic grievance intake portal for this municipal cluster is currently deactivated or undergoing scheduled system maintenance by the state administration.
+        </p>
+
+        <!-- Helpline Information Box -->
+        <div class="mt-8 bg-slate-50 border border-slate-200 rounded-2xl p-6 text-left max-w-lg mx-auto">
+            <div class="flex items-start space-x-3">
+                <i data-lucide="phone-call" class="w-5 h-5 text-govblue-600 mt-0.5 flex-shrink-0"></i>
+                <div class="space-y-1">
+                    <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Emergency & Civic Helpline</h4>
+                    <p class="text-xs text-slate-600">
+                        For immediate or life-safety emergencies, please dial the 24/7 municipal emergency control room:
+                    </p>
+                    <div class="pt-2 flex items-center space-x-2">
+                        <span class="text-xl font-black font-mono text-govblue-700 bg-white px-3 py-1 rounded-lg border border-slate-200 shadow-sm">
+                            Helpline: {{ EMERGENCY_HELPLINE|default:"1234" }}
+                        </span>
+                        <span class="text-[11px] text-slate-500 font-medium">Toll-Free (24x7)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation CTAs -->
+        <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <a href="{% url 'home' %}" class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-xl bg-govblue-700 hover:bg-govblue-800 text-white font-bold text-sm shadow-md transition">
+                <i data-lucide="home" class="w-4 h-4 mr-2"></i> Return to Homepage
+            </a>
+            <a href="{% url 'citizen_hub' %}" class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm border border-slate-200 transition">
+                <i data-lucide="info" class="w-4 h-4 mr-2 text-slate-500"></i> Citizen Services Hub
+            </a>
+            {% if IS_SUPERADMIN %}
+            <a href="{% url 'cluster_onboard' %}" class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm shadow-md transition">
+                <i data-lucide="settings" class="w-4 h-4 mr-2"></i> Enable Cluster in Admin
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

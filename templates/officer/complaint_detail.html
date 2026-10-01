@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block title %}Action Grievance {{ complaint.ticket_number }} - {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <a href="{% url 'officer_dashboard' %}" class="inline-flex items-center text-xs font-bold text-slate-500 hover:text-slate-800 mb-2">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5 mr-1"></i> Back to Officer Queue
+            </a>
+            <div class="flex items-center space-x-3">
+                <h1 class="text-2xl font-black text-slate-900">{{ complaint.ticket_number }}</h1>
+                <span class="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full {% if complaint.status in 'RESOLVED,CITIZEN_CONFIRMED' %}bg-emerald-100 text-emerald-800{% elif complaint.status == 'ESCALATED' %}bg-rose-100 text-rose-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                    {{ complaint.get_status_display }}
+                </span>
+            </div>
+        </div>
+
+        <div class="text-right">
+            <div class="text-[11px] text-slate-400 font-bold uppercase">SLA Target</div>
+            <div class="text-sm font-bold text-slate-800">{{ complaint.sla_deadline|date:"d M Y, h:i A"|default:"24h" }}</div>
+        </div>
+    </div>
+
+    <!-- 7-Level Workflow Escalation Stage Strip -->
+    <div class="mb-6 p-4 rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+        <div class="flex items-center space-x-3">
+            <span class="px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider {% if complaint.current_level == 'CM_OFFICE' %}bg-rose-100 text-rose-800 border border-rose-300{% elif 'CL' in complaint.current_level %}bg-purple-100 text-purple-800 border border-purple-200{% else %}bg-blue-100 text-govblue-800 border border-blue-200{% endif %}">
+                Stage: {{ complaint.current_level }}
+            </span>
+            <div>
+                <div class="font-bold text-slate-900">{{ complaint.current_level_label }}</div>
+                <div class="text-[11px] text-slate-500">Tier {{ complaint.escalated_to_level }} of 7 in Sequential Escalation Chain • Allocated SLA: {{ complaint.level_sla_hours }}h</div>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <span class="text-slate-400 font-semibold text-[11px]">Next Sequential Target:</span>
+            <span class="px-2 py-0.5 rounded bg-slate-100 font-bold text-slate-700 text-[11px] border border-slate-200">
+                {% if next_escalation_target %}{{ next_escalation_target }}{% else %}CM Office (Apex Redressal){% endif %}
+            </span>
+        </div>
+    </div>
+
+    {% if complaint.current_assignee and complaint.current_assignee != request.user %}
+    <div class="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-3 text-xs text-amber-900 shadow-sm">
+        <i data-lucide="info" class="w-4 h-4 text-amber-600 flex-shrink-0"></i>
+        <span>
+            Assigned Officer: <strong>{{ complaint.current_assignee.get_full_name|default:complaint.current_assignee.username }}</strong>
+            ({{ complaint.current_assignee.profile.designation|default:complaint.zone.name }}).
+        </span>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Left: Grievance Details & AI Triage (Col 7) -->
+        <div class="lg:col-span-7 space-y-6">
+            <!-- Issue Overview Card -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+                <h2 class="text-lg font-black text-slate-900">{{ complaint.title }}</h2>
+                {% if complaint.translated_title and complaint.translated_title != complaint.title %}
+                <div class="text-sm font-bold text-govblue-800 -mt-2 flex items-center">
+                    <span class="text-[10px] font-black uppercase tracking-wider bg-blue-100 text-govblue-800 px-1.5 py-0.5 rounded mr-2">EN</span>
+                    {{ complaint.translated_title }}
+                </div>
+                {% endif %}
+
+                {% if complaint.translation_header %}
+                <!-- Automated Translation Header Banner for Officer -->
+                <div class="p-3.5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-indigo-200 rounded-xl space-y-1.5">
+                    <div class="flex items-center space-x-2 text-indigo-950 font-bold text-xs">
+                        <i data-lucide="languages" class="w-4 h-4 text-indigo-600 flex-shrink-0"></i>
+                        <span>{{ complaint.translation_header }}</span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 text-[10px] text-slate-600">
+                        <span class="bg-white px-2 py-0.5 rounded border border-indigo-100 font-semibold">Script: <strong>{{ complaint.script_detected }}</strong></span>
+                        <span class="bg-white px-2 py-0.5 rounded border border-indigo-100 font-mono">Code Points: <strong>{{ complaint.unicode_script_range }}</strong></span>
+                        <span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">Verbatim Text Preserved</span>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center">
+                                <i data-lucide="file-text" class="w-3 h-3 mr-1"></i> Preserved Original Submission
+                            </span>
+                            <span class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-bold">{{ complaint.language_detected|upper }}</span>
+                        </div>
+                        <p class="text-xs text-slate-800 leading-relaxed font-medium">
+                            {{ complaint.original_description|default:complaint.description }}
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-200">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-800 flex items-center">
+                                <i data-lucide="sparkles" class="w-3 h-3 mr-1 text-emerald-600"></i> Official English Translation
+                            </span>
+                            <span class="text-[10px] bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded font-bold">EN</span>
+                        </div>
+                        <p class="text-xs text-slate-900 leading-relaxed font-semibold">
+                            {{ complaint.translated_description|default:complaint.description }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <span class="text-slate-400 font-bold block">Location</span>
+                        <span class="text-slate-800 font-semibold">Zone {{ complaint.zone.number }} • Ward {{ complaint.ward.number }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 font-bold block">India Post DIGIPIN</span>
+                        <span class="font-mono text-govblue-800 font-black text-sm">{{ complaint.digipin }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 font-bold block">Department</span>
+                        <span class="text-slate-800 font-semibold">{{ complaint.department.name }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 font-bold block">Severity</span>
+                        <span class="font-bold text-rose-700">{{ complaint.get_severity_display }}</span>
+                    </div>
+                </div>
+
+                <!-- Citizen Contact & Aadhaar Identity Verification -->
+                <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-600 gap-2">
+                    <div>
+                        <span>Citizen: <strong>{{ complaint.citizen_name }}</strong> ({{ complaint.citizen_email }})</span>
+                        <span class="ml-2 text-slate-400">• Phone: <strong>{{ complaint.citizen_phone|default:"N/A" }}</strong></span>
+                    </div>
+                    <div>
+                        {% if complaint.is_aadhaar_verified %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            <i data-lucide="shield-check" class="w-3.5 h-3.5 mr-1 text-emerald-600"></i> Aadhaar Verified (•••• {{ complaint.aadhaar_last4|default:"****" }})
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                            <i data-lucide="shield" class="w-3.5 h-3.5 mr-1 text-slate-400"></i> Standard Submission
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Decision & Triage Log (Gemini 3.8 Flash) -->
+            <div class="bg-purple-50/50 rounded-2xl p-6 border border-purple-200 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-black text-purple-900 uppercase tracking-wider flex items-center">
+                        <i data-lucide="bot" class="w-4 h-4 mr-1.5 text-purple-700"></i>
+                        Google Gemini 3.8 Flash • AI Triage Insights
+                    </h3>
+                    <span class="text-[10px] font-bold bg-purple-200/60 text-purple-800 px-2 py-0.5 rounded">
+                        Explainable Decision Log
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3 text-xs">
+                    <div class="bg-white p-3 rounded-lg border border-purple-100">
+                        <span class="text-slate-400 block font-semibold text-[10px]">Detected Script & Range</span>
+                        <span class="font-bold text-slate-800">{{ complaint.script_detected }} ({{ complaint.language_detected|upper }})</span>
+                        <span class="font-mono text-[10px] text-purple-700 block mt-0.5">{{ complaint.unicode_script_range }}</span>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border border-purple-100">
+                        <span class="text-slate-400 block font-semibold text-[10px]">Urgency Score</span>
+                        <span class="font-bold text-purple-800">{{ complaint.urgency_score|floatformat:2 }} / 1.00</span>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border border-purple-100">
+                        <span class="text-slate-400 block font-semibold text-[10px]">Routing Match</span>
+                        <span class="font-bold text-emerald-700">100% Confirmed</span>
+                    </div>
+                </div>
+
+                {% if complaint.is_duplicate_of %}
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 flex items-center">
+                    <i data-lucide="layers" class="w-4 h-4 mr-2 text-amber-600 flex-shrink-0"></i>
+                    <span>Spatial Cluster: Marked as duplicate of ticket <strong>{{ complaint.is_duplicate_of.ticket_number }}</strong> (&lt;350m / 14 days).</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Citizen Attached Image -->
+            {% if complaint.image %}
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Citizen Uploaded Photo</h3>
+                <img src="{{ complaint.image.url }}" alt="Grievance Evidence" class="w-full h-64 object-cover rounded-xl border border-slate-200 shadow-sm">
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right: Officer Action Controls (Col 5) -->
+        <div class="lg:col-span-5 space-y-6">
+            <!-- Action 1: Field Inspection Progression -->
+            {% if complaint.status != 'RESOLVED' and complaint.status != 'CITIZEN_CONFIRMED' %}
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+                <h3 class="text-sm font-bold text-slate-900 flex items-center">
+                    <i data-lucide="check-square" class="w-4 h-4 mr-2 text-govblue-700"></i>
+                    Field Execution Actions
+                </h3>
+
+                {% if complaint.status == 'ASSIGNED' or complaint.status == 'ESCALATED' or complaint.status == 'REOPENED' %}
+                <form method="POST" class="space-y-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="start_field_work">
+                    <label class="block text-xs font-bold text-slate-700">Inspection Notes</label>
+                    <textarea name="notes" rows="2" placeholder="e.g. Field inspection team deployed to location..."
+                              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs"></textarea>
+                    <button type="submit" class="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs transition shadow-sm">
+                        Start Field Inspection
+                    </button>
+                </form>
+                {% endif %}
+
+                <!-- Resolve Form -->
+                <form method="POST" enctype="multipart/form-data" class="space-y-3 pt-3 border-t border-slate-100">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="resolve">
+                    
+                    <label class="block text-xs font-bold text-slate-700">Resolution Description *</label>
+                    <textarea name="notes" rows="3" required placeholder="Describe the remediation work performed (e.g. Pothole filled with cold mix bitumen; stormwater drain desilted)..."
+                              class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Upload Resolution Proof Photo *</label>
+                        <input type="file" name="resolution_image" accept="image/*"
+                               class="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg text-xs transition shadow-md flex items-center justify-center">
+                        <i data-lucide="check-circle" class="w-4 h-4 mr-1.5"></i> Mark Grievance as RESOLVED
+                    </button>
+                </form>
+            </div>
+
+            <!-- Action 2: SLA Escalation to +1 Level Staff -->
+            {% if can_escalate_plus_one %}
+            <div class="bg-amber-50/70 rounded-2xl p-6 border border-amber-200 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-amber-950 uppercase tracking-wider flex items-center">
+                        <i data-lucide="trending-up" class="w-4 h-4 mr-1.5 text-amber-700"></i>
+                        SLA Escalation to +1 Level Staff
+                    </h3>
+                    <span class="px-2.5 py-0.5 bg-amber-200 text-amber-900 text-[10px] font-black rounded-full uppercase tracking-wider">
+                        {{ next_escalation_target }}
+                    </span>
+                </div>
+                <p class="text-xs text-amber-800 leading-relaxed">
+                    Escalate this grievance up the administrative hierarchy to your supervising officer when resolution requires higher-level sanction, inter-departmental coordination, or SLA timelines are exceeded.
+                </p>
+                <form method="POST" class="space-y-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="escalate_plus_one">
+                    <div>
+                        <label class="block text-xs font-bold text-amber-900 mb-1">Escalation Reason & SLA Justification *</label>
+                        <textarea name="notes" rows="2" required placeholder="State justification for escalation to {{ next_escalation_target }}..."
+                                  class="w-full px-3 py-2 border border-amber-300 rounded-lg text-xs bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none"></textarea>
+                    </div>
+                    <button type="submit" onclick="return confirm('Escalate this grievance to {{ next_escalation_target }}? This records a tier escalation in the cryptographic audit log.');"
+                            class="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs transition shadow-sm flex items-center justify-center">
+                        <i data-lucide="arrow-up-circle" class="w-4 h-4 mr-1.5"></i> Escalate to {{ next_escalation_target }}
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Action 3: Reassign / Transfer Ticket -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-3">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Transfer / Reassign Grievance</h3>
+                <form method="POST" class="space-y-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="reassign">
+                    <select name="new_assignee" required class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs">
+                        <option value="">-- Select Officer to Transfer --</option>
+                        {% for s in available_staff %}
+                        <option value="{{ s.user.id }}">{{ s.user.get_full_name|default:s.user.username }} ({{ s.designation|default:s.role }})</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs transition">
+                        Transfer Grievance & Notify Both Officers
+                    </button>
+                </form>
+            </div>
+            {% else %}
+            <div class="bg-emerald-50 p-6 rounded-2xl border border-emerald-200 text-center">
+                <i data-lucide="check-circle-2" class="w-10 h-10 text-emerald-600 mx-auto mb-2"></i>
+                <h3 class="font-bold text-emerald-900 text-sm">Grievance Resolved</h3>
+                <p class="text-xs text-emerald-700 mt-1">Resolution notes and proof photo have been dispatched to citizen for confirmation.</p>
+                {% if complaint.resolution_image %}
+                <img src="{{ complaint.resolution_image.url }}" alt="Resolution Proof" class="mt-4 rounded-xl border border-emerald-300 w-full h-48 object-cover shadow-sm">
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

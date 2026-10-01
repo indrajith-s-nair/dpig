@@ -1,0 +1,59 @@
+{
+  "name": "Periodic Policy Intelligence Digest Trigger",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "node-cron-schedule",
+      "name": "Weekly Monday 9 AM Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://web:8000/policymaker/trigger-ai/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Token",
+              "value": "dpig-internal-webhook-secret-2026"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-trigger-ai",
+      "name": "Trigger Gemini Policy Synthesis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [340, 300]
+    }
+  ],
+  "connections": {
+    "Weekly Monday 9 AM Trigger": {
+      "main": [
+        [
+          {
+            "node": "Trigger Gemini Policy Synthesis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

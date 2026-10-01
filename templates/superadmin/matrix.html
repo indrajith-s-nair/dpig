@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block title %}SuperAdmin Control Center & Feature Matrix - {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+
+    <!-- Header & SuperAdmin Scope -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-200 gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200">
+                    SuperAdmin Only
+                </span>
+                <span class="text-xs text-slate-500">• Complete Platform Oversight</span>
+            </div>
+            <h1 class="text-3xl font-black text-slate-900 tracking-tight mt-1">
+                Platform Control Center & Feature Permission Matrix
+            </h1>
+            <p class="text-sm text-slate-600 mt-1">
+                Configure platform subsystems, manage feature access gates, seed or purge demo data, and audit administrative users.
+            </p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'cluster_onboard' %}" class="inline-flex items-center px-4 py-2 text-xs font-bold rounded-lg text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 shadow-sm transition">
+                <i data-lucide="plus-circle" class="w-3.5 h-3.5 mr-1.5"></i> 1-Click Cluster Onboard
+            </a>
+            <a href="/admin/" class="inline-flex items-center px-4 py-2 text-xs font-bold rounded-lg text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 shadow-sm transition">
+                <i data-lucide="shield" class="w-3.5 h-3.5 mr-1.5"></i> Django Admin Portal
+            </a>
+        </div>
+    </div>
+
+    <!-- Platform Oversight Metrics Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm text-center">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active Clusters</div>
+            <div class="text-2xl font-black text-slate-900 mt-1">{{ clusters_count }}</div>
+            <div class="text-[10px] {% if disabled_clusters_count %}text-amber-600 font-bold{% else %}text-emerald-600 font-semibold{% endif %} mt-0.5">
+                {% if disabled_clusters_count %}{{ disabled_clusters_count }} Deactivated{% else %}Multi-Tenant PostGIS{% endif %}
+            </div>
+        </div>
+        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm text-center">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Zones</div>
+            <div class="text-2xl font-black text-slate-900 mt-1">{{ zones_count }}</div>
+            <div class="text-[10px] text-slate-500 font-semibold mt-0.5">Jurisdictions</div>
+        </div>
+        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm text-center">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Wards</div>
+            <div class="text-2xl font-black text-slate-900 mt-1">{{ wards_count }}</div>
+            <div class="text-[10px] text-slate-500 font-semibold mt-0.5">Micro-Geographies</div>
+        </div>
+        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm text-center">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Departments</div>
+            <div class="text-2xl font-black text-slate-900 mt-1">{{ depts_count }}</div>
+            <div class="text-[10px] text-slate-500 font-semibold mt-0.5">Municipal Services</div>
+        </div>
+        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm text-center">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Registered Officers</div>
+            <div class="text-2xl font-black text-indigo-600 mt-1">{{ staff_count }}</div>
+            <div class="text-[10px] text-indigo-500 font-semibold mt-0.5">RBAC Assigned</div>
+        </div>
+        <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm text-center">
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Complaints in DB</div>
+            <div class="text-2xl font-black text-rose-600 mt-1">{{ total_complaints }}</div>
+            <div class="text-[10px] text-slate-500 font-semibold mt-0.5">With Audit Blocks</div>
+        </div>
+    </div>
+
+    <!-- Main Grid: Feature Permission Matrix + Demo Data Actions -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+        <!-- Left Column: Feature Permission Matrix (8 cols) -->
+        <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 flex items-center">
+                        <i data-lucide="sliders" class="w-5 h-5 mr-2 text-govblue-700"></i>
+                        Feature Permission Matrix
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        Enable or disable individual system subsystems across the entire multi-tenant platform.
+                    </p>
+                </div>
+                <span class="text-xs font-mono bg-slate-100 px-2.5 py-1 rounded text-slate-600 font-semibold">
+                    v2.4 Active
+                </span>
+            </div>
+
+            <form method="POST" action="{% url 'feature_permission_matrix' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_matrix">
+                <div class="divide-y divide-slate-100">
+                    {% for key, feat in features.items %}
+                    <div class="p-4 sm:p-5 flex items-start justify-between hover:bg-slate-50/50 transition">
+                        <div class="pr-4 space-y-1">
+                            <div class="flex items-center space-x-2">
+                                <span class="font-bold text-slate-900 text-sm">{{ feat.name }}</span>
+                                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                                    {{ feat.subsystem }}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-600 leading-relaxed max-w-xl">
+                                {{ feat.desc }}
+                            </p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer flex-shrink-0 mt-1">
+                            <input type="checkbox" name="feat_{{ key }}" class="sr-only peer" {% if feat.enabled %}checked{% endif %}>
+                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-govblue-700"></div>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                    <span class="text-xs text-slate-500">
+                        Changes take effect immediately across all cluster sessions.
+                    </span>
+                    <button type="submit" class="inline-flex items-center px-5 py-2.5 rounded-xl font-bold text-white bg-govblue-700 hover:bg-govblue-800 shadow-md text-xs transition">
+                        <i data-lucide="check" class="w-4 h-4 mr-1.5"></i> Save Feature Matrix Configuration
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Right Column: Demo Data Management (4 cols) -->
+        <div class="lg:col-span-4 space-y-6">
+
+            <!-- Data Seeding Card -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                    <i data-lucide="database-zap" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">Seed Realistic Demo Grievances</h3>
+                    <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                        Instantly generates 8-10 diverse Tamil Nadu civic grievances across Chennai zones/wards (Ward 108, Ward 52, Ward 114) with:
+                    </p>
+                    <ul class="text-[11px] text-slate-500 mt-2 space-y-1 list-disc list-inside">
+                        <li>Valid 10-char India Post DIGIPINs</li>
+                        <li>Realistic SLA countdowns & escalations</li>
+                        <li>Tamper-evident SHA-256 audit blocks</li>
+                        <li>Varied statuses (Submitted &rarr; Resolved)</li>
+                    </ul>
+                </div>
+                <form method="POST" action="{% url 'seed_demo_data' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md transition">
+                        <i data-lucide="sparkles" class="w-4 h-4 mr-1.5"></i> Seed Demo Complaints Now
+                    </button>
+                </form>
+            </div>
+
+            <!-- Data Purging Card -->
+            <div class="bg-white rounded-2xl border border-rose-200 shadow-sm p-6 space-y-4 bg-rose-50/20">
+                <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
+                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-rose-900">Purge Demo Grievance Data</h3>
+                    <p class="text-xs text-rose-700/80 mt-1 leading-relaxed">
+                        Cleanly deletes all complaints, audit logs, and SLA logs to reset the triage queue.
+                        <strong>Master geography (Clusters, Zones, Wards, Officers) is preserved safely.</strong>
+                    </p>
+                </div>
+                <form method="POST" action="{% url 'purge_demo_data' %}" onsubmit="return confirm('Are you sure you want to purge all demo complaints? This action cannot be undone.');">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-xs font-bold text-rose-700 bg-white hover:bg-rose-50 border border-rose-300 shadow-sm transition">
+                        <i data-lucide="alert-triangle" class="w-4 h-4 mr-1.5 text-rose-600"></i> Purge All Demo Complaints
+                    </button>
+                </form>
+            </div>
+
+            <!-- RBAC Hierarchy Reference -->
+            <div class="bg-slate-900 text-white rounded-2xl p-6 space-y-3 shadow-lg">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold uppercase tracking-wider text-amber-400">RBAC Scope Policy</span>
+                    <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div class="text-xs text-slate-300 space-y-2">
+                    <div>
+                        <strong class="text-white">SUPERADMIN:</strong> Complete system oversight, feature toggles, data seeding, onboarding.
+                    </div>
+                    <div>
+                        <strong class="text-white">OFFICERS:</strong> Strict jurisdiction. Ward AE only sees their Ward/Dept; ZO sees their Zone.
+                    </div>
+                    <div>
+                        <strong class="text-white">CITIZEN:</strong> Strict restriction to reporting, personal tracking, and public services.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Municipal Clusters Activation & Control -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h3 class="text-base font-bold text-slate-900 flex items-center">
+                    <i data-lucide="layers" class="w-4 h-4 mr-2 text-rose-600"></i>
+                    Municipal Clusters Activation & Control
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Enable or disable local government clusters to manage public availability and jurisdiction workflows.
+                </p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="text-xs font-semibold px-2.5 py-1 rounded bg-slate-100 text-slate-700">
+                    {{ active_clusters_count }} Active / {{ total_clusters_count }} Total
+                </span>
+                <a href="{% url 'cluster_onboard' %}" class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg text-govblue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition">
+                    <i data-lucide="plus" class="w-3.5 h-3.5 mr-1"></i> Add / Onboard Cluster
+                </a>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs divide-y divide-slate-100">
+                <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
+                    <tr>
+                        <th class="px-6 py-3">Cluster Code</th>
+                        <th class="px-6 py-3">Cluster Name</th>
+                        <th class="px-6 py-3">Type</th>
+                        <th class="px-6 py-3">Zones & Wards</th>
+                        <th class="px-6 py-3">Helpline</th>
+                        <th class="px-6 py-3">Status</th>
+                        <th class="px-6 py-3 text-right">Cluster Activation</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+                    {% for c in clusters %}
+                    <tr class="hover:bg-slate-50/50 transition {% if not c.is_active %}bg-slate-50/40 opacity-80{% endif %}">
+                        <td class="px-6 py-3.5 font-mono font-bold text-govblue-800">{{ c.code }}</td>
+                        <td class="px-6 py-3.5">
+                            <span class="font-bold text-slate-900 block">{{ c.name }}</span>
+                            <span class="text-[10px] text-slate-400">{{ c.state }}</span>
+                        </td>
+                        <td class="px-6 py-3.5 text-slate-600">{{ c.get_cluster_type_display }}</td>
+                        <td class="px-6 py-3.5 font-mono">
+                            <span class="text-govblue-700 font-bold">{{ c.zones.count }} Zones</span> • 
+                            <span class="text-slate-600 font-bold">{{ c.total_wards_count }} Wards</span>
+                        </td>
+                        <td class="px-6 py-3.5 font-mono font-bold text-amber-600">{{ c.emergency_helpline }}</td>
+                        <td class="px-6 py-3.5">
+                            {% if c.is_active %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded font-mono font-bold text-[10px] bg-emerald-100 text-emerald-800">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 mr-1.5 animate-pulse"></span> Active
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded font-mono font-bold text-[10px] bg-rose-100 text-rose-800">
+                                <span class="w-1.5 h-1.5 rounded-full bg-rose-600 mr-1.5"></span> Disabled
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-3.5 text-right">
+                            <form method="POST" action="{% url 'toggle_cluster_status' c.id %}" class="inline-block">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{% url 'feature_permission_matrix' %}">
+                                {% if c.is_active %}
+                                <button type="submit" 
+                                        onclick="return confirm('Disable {{ c.name }} ({{ c.code }})?\n\nCitizens will not be able to file grievances for deactivated clusters until re-enabled.');"
+                                        class="inline-flex items-center px-2.5 py-1 text-[11px] font-bold rounded text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-300 transition">
+                                    <i data-lucide="power" class="w-3 h-3 mr-1 text-rose-600"></i> Disable Cluster
+                                </button>
+                                {% else %}
+                                <button type="submit" 
+                                        onclick="return confirm('Enable {{ c.name }} ({{ c.code }}) now?');"
+                                        class="inline-flex items-center px-2.5 py-1 text-[11px] font-bold rounded text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition">
+                                    <i data-lucide="check-circle" class="w-3 h-3 mr-1 text-emerald-600"></i> Enable Cluster
+                                </button>
+                                {% endif %}
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-6 text-center text-slate-400">
+                            No clusters registered. Use 1-Click Cluster Onboard to initialize.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- System Accounts & Role Directory -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+            <div>
+                <h3 class="text-base font-bold text-slate-900 flex items-center">
+                    <i data-lucide="users" class="w-4 h-4 mr-2 text-indigo-600"></i>
+                    Role Directory & Jurisdiction Mapping
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Live directory of provisioned accounts, their assigned roles, and geographic boundaries.
+                </p>
+            </div>
+            <span class="text-xs text-slate-400 font-semibold">{{ profiles.count }} Registered Accounts</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs divide-y divide-slate-100">
+                <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
+                    <tr>
+                        <th class="px-6 py-3">Username / Officer</th>
+                        <th class="px-6 py-3">Role</th>
+                        <th class="px-6 py-3">Jurisdiction (Zone / Ward)</th>
+                        <th class="px-6 py-3">Department</th>
+                        <th class="px-6 py-3">Designation</th>
+                        <th class="px-6 py-3 text-right">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
+                    {% for p in profiles %}
+                    <tr class="hover:bg-slate-50/50 transition">
+                        <td class="px-6 py-3.5">
+                            <div class="font-bold text-slate-900 font-mono">{{ p.user.username }}</div>
+                            <div class="text-[11px] text-slate-400">{{ p.user.email }}</div>
+                        </td>
+                        <td class="px-6 py-3.5">
+                            <span class="px-2 py-0.5 rounded font-mono font-bold text-[10px] uppercase {% if p.role == 'SUPERADMIN' %}bg-rose-100 text-rose-800{% elif p.role == 'COMMISSIONER' %}bg-purple-100 text-purple-800{% elif p.role == 'ZONAL_OFFICER' %}bg-amber-100 text-amber-800{% elif p.role == 'WARD_OFFICER' %}bg-indigo-100 text-indigo-800{% elif p.role == 'POLICYMAKER' %}bg-emerald-100 text-emerald-800{% else %}bg-slate-100 text-slate-800{% endif %}">
+                                {{ p.get_role_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-3.5">
+                            {% if p.ward %}
+                                <span class="font-bold text-slate-900">Ward {{ p.ward.number }}</span> ({{ p.ward.name }})<br>
+                                <span class="text-slate-400 text-[10px]">Zone {{ p.ward.zone.number }}</span>
+                            {% elif p.zone %}
+                                <span class="font-bold text-slate-900">Zone {{ p.zone.number }}</span> ({{ p.zone.name }})
+                            {% elif p.role == 'SUPERADMIN' or p.role == 'COMMISSIONER' %}
+                                <span class="text-emerald-600 font-bold">Entire City / State</span>
+                            {% else %}
+                                <span class="text-slate-400">Public Citizen</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-3.5">
+                            {{ p.department.name|default:"City-Wide / General" }}
+                        </td>
+                        <td class="px-6 py-3.5 text-slate-500">
+                            {{ p.designation|default:"-" }}
+                        </td>
+                        <td class="px-6 py-3.5 text-right">
+                            <span class="inline-flex items-center text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-200">
+                                <i data-lucide="check-circle" class="w-3 h-3 mr-1 text-emerald-600"></i> Active
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-8 text-center text-slate-400">
+                            No officer profiles registered. Onboard a cluster or provision staff using the Staff Management console.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

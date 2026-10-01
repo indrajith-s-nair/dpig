@@ -1,0 +1,148 @@
+{
+  "name": "WhatsApp / Telegram Citizen Grievance Ingestion",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "citizen-grievance",
+        "options": {}
+      },
+      "id": "node-webhook-1",
+      "name": "Citizen Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "channel",
+              "value": "={{ $json.body.channel || 'WhatsApp' }}"
+            },
+            {
+              "name": "sender_phone",
+              "value": "={{ $json.body.phone || '9840123456' }}"
+            },
+            {
+              "name": "message_text",
+              "value": "={{ $json.body.text || $json.body.caption || 'Civic Issue' }}"
+            },
+            {
+              "name": "latitude",
+              "value": "={{ $json.body.latitude || 13.0827 }}"
+            },
+            {
+              "name": "longitude",
+              "value": "={{ $json.body.longitude || 80.2707 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-set-1",
+      "name": "Extract Message & Coordinates",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [320, 300]
+    },
+    {
+      "parameters": {
+        "url": "=http://web:8000/api/digipin/encode/?lat={{ $json.latitude }}&lon={{ $json.longitude }}",
+        "options": {}
+      },
+      "id": "node-http-digipin",
+      "name": "Resolve DIGIPIN from Coordinates",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [540, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://web:8000/api/complaints/ingest/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Token",
+              "value": "dpig-internal-webhook-secret-2026"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"channel\": \"{{ $('Extract Message & Coordinates').item.json.channel }}\",\n  \"sender_phone\": \"{{ $('Extract Message & Coordinates').item.json.sender_phone }}\",\n  \"message_text\": \"{{ $('Extract Message & Coordinates').item.json.message_text }}\",\n  \"latitude\": {{ $('Extract Message & Coordinates').item.json.latitude }},\n  \"longitude\": {{ $('Extract Message & Coordinates').item.json.longitude }},\n  \"digipin\": \"{{ $json.digipin }}\"\n}",
+        "options": {}
+      },
+      "id": "node-http-create-complaint",
+      "name": "Create Grievance in DPIG Registry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"{{ $json.status }}\",\n  \"ticket_number\": \"{{ $json.ticket_number }}\",\n  \"digipin\": \"{{ $json.digipin }}\",\n  \"tracking_url\": \"{{ $json.tracking_url }}\",\n  \"ward\": \"{{ $json.ward }}\",\n  \"zone\": \"{{ $json.zone }}\",\n  \"message\": \"{{ $json.message }}\"\n}",
+        "options": {}
+      },
+      "id": "node-respond-citizen",
+      "name": "Respond to Citizen Channel",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [980, 300]
+    }
+  ],
+  "connections": {
+    "Citizen Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Message & Coordinates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Message & Coordinates": {
+      "main": [
+        [
+          {
+            "node": "Resolve DIGIPIN from Coordinates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve DIGIPIN from Coordinates": {
+      "main": [
+        [
+          {
+            "node": "Create Grievance in DPIG Registry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Grievance in DPIG Registry": {
+      "main": [
+        [
+          {
+            "node": "Respond to Citizen Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

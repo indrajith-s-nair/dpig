@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dpig-celery-worker
+  namespace: dpig
+  labels:
+    app: dpig-celery-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: dpig-celery-worker
+  template:
+    metadata:
+      labels:
+        app: dpig-celery-worker
+    spec:
+      containers:
+        - name: worker
+          image: dpig:latest
+          imagePullPolicy: IfNotPresent
+          command: ["celery", "-A", "dpig", "worker", "-l", "INFO", "--concurrency=4"]
+          envFrom:
+            - configMapRef:
+                name: dpig-config
+            - secretRef:
+                name: dpig-secrets
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dpig-celery-beat
+  namespace: dpig
+  labels:
+    app: dpig-celery-beat
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: dpig-celery-beat
+  template:
+    metadata:
+      labels:
+        app: dpig-celery-beat
+    spec:
+      containers:
+        - name: beat
+          image: dpig:latest
+          imagePullPolicy: IfNotPresent
+          command: ["celery", "-A", "dpig", "beat", "-l", "INFO"]
+          envFrom:
+            - configMapRef:
+                name: dpig-config
+            - secretRef:
+                name: dpig-secrets
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "300m"

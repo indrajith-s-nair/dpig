@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}1-Click Local Government Cluster Onboarding - {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div class="mb-8">
+        <span class="text-xs font-bold text-rose-700 uppercase tracking-widest">State SuperAdmin Console</span>
+        <h1 class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">1-Click Local Government Cluster Onboarding</h1>
+        <p class="text-sm text-slate-600 mt-1">
+            Initialize and provision municipal corporations, municipalities, and district administrations state-wide using standardized Google-Sheets-ready workbooks.
+        </p>
+    </div>
+
+    <!-- 1-Click Launch & Upload Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10">
+        <!-- Card 1: 1-Click GCC Launch (Col 6) -->
+        <div class="lg:col-span-6 bg-gradient-to-br from-slate-900 to-blue-950 text-white p-8 rounded-2xl shadow-xl flex flex-col justify-between relative overflow-hidden">
+            <div class="space-y-4">
+                <div class="inline-flex items-center space-x-2 bg-blue-500/20 text-cyan-300 px-3 py-1 rounded-full text-xs font-bold border border-blue-400/30">
+                    <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-300"></i> Instant Provisioning
+                </div>
+
+                <h2 class="text-2xl font-black tracking-tight">One-Click Launch: Greater Chennai Corporation (GCC)</h2>
+                
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Instantly onboard the complete administrative structure for Greater Chennai Corporation from the validated master template:
+                </p>
+
+                <div class="grid grid-cols-2 gap-3 pt-2 text-xs">
+                    <div class="bg-white/10 p-3 rounded-lg border border-white/10">
+                        <span class="text-slate-400 block text-[10px] uppercase font-bold">Zones</span>
+                        <strong class="text-base text-amber-300 font-mono">15 Administrative Zones</strong>
+                        <span class="text-[10px] text-slate-300 block">Thiruvottiyur to Sholinganallur</span>
+                    </div>
+                    <div class="bg-white/10 p-3 rounded-lg border border-white/10">
+                        <span class="text-slate-400 block text-[10px] uppercase font-bold">Wards</span>
+                        <strong class="text-base text-amber-300 font-mono">200 Electoral Wards</strong>
+                        <span class="text-[10px] text-slate-300 block">Delimited with DIGIPIN prefixes</span>
+                    </div>
+                    <div class="bg-white/10 p-3 rounded-lg border border-white/10">
+                        <span class="text-slate-400 block text-[10px] uppercase font-bold">Departments</span>
+                        <strong class="text-base text-cyan-300 font-mono">8 Civic Departments</strong>
+                        <span class="text-[10px] text-slate-300 block">SWM, SWD, Roads, Lights, Health...</span>
+                    </div>
+                    <div class="bg-white/10 p-3 rounded-lg border border-white/10">
+                        <span class="text-slate-400 block text-[10px] uppercase font-bold">SLA Engine</span>
+                        <strong class="text-base text-emerald-300 font-mono">20 Categories & SLAs</strong>
+                        <span class="text-[10px] text-slate-300 block">Tier 1-3 Escalation Matrix</span>
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST" class="mt-8">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="load_sample_gcc">
+                <button type="submit" class="w-full py-4 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-sm rounded-xl shadow-lg transition transform hover:-translate-y-0.5 flex items-center justify-center">
+                    <i data-lucide="play" class="w-4 h-4 mr-2 fill-current"></i> Launch Greater Chennai Corporation Now
+                </button>
+            </form>
+        </div>
+
+        <!-- Card 2: Custom Workbook Upload & Template Download (Col 6) -->
+        <div class="lg:col-span-6 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div class="space-y-4">
+                <div class="flex flex-wrap justify-between items-center gap-2">
+                    <h2 class="text-lg font-black text-slate-900">Upload Custom Cluster Workbook</h2>
+                    <div class="flex items-center gap-2">
+                        <a href="{% url 'download_template' %}?type=sample" class="inline-flex items-center text-xs font-bold text-govblue-700 hover:text-govblue-800 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 transition" title="Download GCC 200-Ward Reference Master">
+                            <i data-lucide="file-text" class="w-3.5 h-3.5 mr-1 text-govblue-600"></i> Master (.xlsx)
+                        </a>
+                        <a href="{% url 'download_template' %}?type=blank" class="inline-flex items-center text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 transition" title="Download Blank Starter Template for New Municipalities">
+                            <i data-lucide="file-plus" class="w-3.5 h-3.5 mr-1 text-emerald-600"></i> Blank Starter (.xlsx)
+                        </a>
+                    </div>
+                </div>
+
+                <p class="text-xs text-slate-600 leading-relaxed">
+                    Upload an Excel (.xlsx) workbook or Google Sheets export matching the 7 standard sheets:
+                </p>
+
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-slate-700 space-y-1.5 font-mono">
+                    <div>1. <code>01_Cluster_Profile</code> (Code, Type, HQ, Helpline)</div>
+                    <div>2. <code>02_Zones</code> (Zone numbers 1-15, HQ coordinates, Zonal Officers)</div>
+                    <div>3. <code>03_Wards</code> (Wards 1-200, Zone mapping, Centroid Lat/Long)</div>
+                    <div>4. <code>04_Departments</code> (SWM, SWD, Roads, Lights, Health, SLAs)</div>
+                    <div>5. <code>05_Officers_Staff</code> (Personnel, roles, ward assignments)</div>
+                    <div>6. <code>06_Categories_SLAs</code> (Taxonomy, SLA hours, L1-L3 escalation)</div>
+                    <div>7. <code>07_Broadcast_Services</code> (Welfare schemes, public advisories)</div>
+                </div>
+
+                <form method="POST" enctype="multipart/form-data" class="space-y-4 pt-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="upload_workbook">
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Select Excel Workbook (.xlsx)</label>
+                        <input type="file" name="workbook_file" accept=".xlsx" required
+                               class="w-full text-xs text-slate-500 file:mr-3 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-800 hover:file:bg-slate-200">
+                    </div>
+
+                    <button type="submit" class="w-full py-3.5 bg-govblue-700 hover:bg-govblue-800 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center">
+                        <i data-lucide="upload-cloud" class="w-4 h-4 mr-2"></i> Parse & Provision Cluster
+                    </button>
+                </form>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 text-[11px] text-slate-400">
+                All records are verified and committed in a single atomic database transaction.
+            </div>
+        </div>
+    </div>
+
+    <!-- Municipal Clusters Across State Registry Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div>
+                <h3 class="text-base font-bold text-slate-900 flex items-center">
+                    <i data-lucide="layers" class="w-5 h-5 mr-2 text-govblue-700"></i>
+                    Municipal Clusters Activation & State Registry
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Enable or disable local government clusters to control civic intake, ward operations, and public availability.
+                </p>
+            </div>
+            <div class="flex items-center space-x-2 text-xs">
+                <span class="px-3 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                    Total: {{ total_clusters_count|default:clusters.count }}
+                </span>
+                <span class="px-3 py-1 rounded-lg font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Active: {{ active_clusters_count }}
+                </span>
+                {% if disabled_clusters_count %}
+                <span class="px-3 py-1 rounded-lg font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                    Disabled: {{ disabled_clusters_count }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider">
+                    <tr>
+                        <th class="p-3">Cluster Code</th>
+                        <th class="p-3">Cluster Name</th>
+                        <th class="p-3">Type</th>
+                        <th class="p-3">Administrative Hierarchy</th>
+                        <th class="p-3">Helpline</th>
+                        <th class="p-3">Operational Status</th>
+                        <th class="p-3 text-right">Cluster Activation</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for c in clusters %}
+                    <tr class="hover:bg-slate-50/70 transition {% if not c.is_active %}bg-slate-50/40 opacity-80{% endif %}">
+                        <td class="p-3 font-mono font-bold text-govblue-800">{{ c.code }}</td>
+                        <td class="p-3">
+                            <span class="font-bold text-slate-900 block">{{ c.name }}</span>
+                            <span class="text-[10px] text-slate-400">{{ c.state }} • HQ ({{ c.headquarters_lat|floatformat:2 }}, {{ c.headquarters_lng|floatformat:2 }})</span>
+                        </td>
+                        <td class="p-3 text-slate-600">{{ c.get_cluster_type_display }}</td>
+                        <td class="p-3">
+                            <div class="flex items-center space-x-2 text-[11px] font-mono">
+                                <span class="bg-blue-50 text-govblue-700 px-2 py-0.5 rounded font-bold">{{ c.zones.count }} Zones</span>
+                                <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold">{{ c.total_wards_count }} Wards</span>
+                                <span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">{{ c.departments.count }} Depts</span>
+                            </div>
+                        </td>
+                        <td class="p-3 font-mono font-bold text-amber-600">{{ c.emergency_helpline }}</td>
+                        <td class="p-3">
+                            {% if c.is_active %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 mr-1.5 animate-pulse"></span>
+                                Enabled (Active)
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-rose-600 mr-1.5"></span>
+                                Disabled (Inactive)
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="p-3 text-right whitespace-nowrap">
+                            <a href="{% url 'download_template' %}?type=export&cluster_id={{ c.id }}"
+                               class="inline-flex items-center px-2.5 py-1.5 text-xs font-bold rounded-lg text-govblue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 shadow-xs transition mr-1"
+                               title="Export live hierarchy for {{ c.name }} to Excel">
+                                <i data-lucide="download" class="w-3.5 h-3.5 mr-1 text-govblue-600"></i> Export (.xlsx)
+                            </a>
+                            <form method="POST" action="{% url 'toggle_cluster_status' c.id %}" class="inline-block">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{% url 'cluster_onboard' %}">
+                                {% if c.is_active %}
+                                <button type="submit" 
+                                        onclick="return confirm('Are you sure you want to DISABLE {{ c.name }} ({{ c.code }})?\n\n• Citizens will not be able to file new complaints for this cluster.\n• Existing complaints and audit logs are safely preserved.\n• You can re-enable this cluster at any time.');"
+                                        class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-300 shadow-sm transition">
+                                    <i data-lucide="power" class="w-3.5 h-3.5 mr-1.5 text-rose-600"></i> Disable
+                                </button>
+                                {% else %}
+                                <button type="submit" 
+                                        onclick="return confirm('Are you sure you want to ENABLE {{ c.name }} ({{ c.code }})?\n\n• Civic grievance registration and officer triage will be restored.');"
+                                        class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 shadow-sm transition">
+                                    <i data-lucide="check-circle" class="w-3.5 h-3.5 mr-1.5 text-emerald-600"></i> Enable
+                                </button>
+                                {% endif %}
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-8 text-slate-400 text-xs">
+                            No clusters created yet. Click "Launch Greater Chennai Corporation Now" above.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

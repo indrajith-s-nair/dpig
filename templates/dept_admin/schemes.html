@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}Department Welfare Schemes - {{ dept.name }} - {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <a href="{% url 'dept_admin_dashboard' %}" class="text-xs font-bold text-emerald-700 hover:underline flex items-center">
+                    &larr; Department Console
+                </a>
+                <span class="text-slate-300">/</span>
+                <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">
+                    {{ dept.name }} Welfare Schemes
+                </span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">Government Welfare & Benefit Schemes</h1>
+            <p class="text-xs text-slate-500 mt-1">
+                Configure, launch, and manage time-bound citizen subsidies, equipment support, and municipal welfare programs for {{ dept.name }}.
+            </p>
+        </div>
+
+        <button type="button" onclick="document.getElementById('modal-create-scheme').classList.remove('hidden')"
+            class="inline-flex items-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm">
+            <i data-lucide="gift" class="w-4 h-4 mr-1.5"></i> Launch Welfare Scheme
+        </button>
+    </div>
+
+    <!-- Scheme Status Filter Tabs -->
+    <div class="flex items-center space-x-2 mb-6 overflow-x-auto pb-2">
+        <a href="{% url 'dept_admin_schemes' %}" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition {% if not status_filter %}bg-slate-900 text-white{% else %}bg-white text-slate-600 hover:bg-slate-100 border border-slate-200{% endif %}">
+            All Schemes ({{ total_schemes }})
+        </a>
+        <a href="{% url 'dept_admin_schemes' %}?status=ACTIVE" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition {% if status_filter == 'ACTIVE' %}bg-emerald-700 text-white{% else %}bg-white text-emerald-800 hover:bg-emerald-50 border border-emerald-200{% endif %}">
+            Active Programs ({{ active_count }})
+        </a>
+        <a href="{% url 'dept_admin_schemes' %}?status=SCHEDULED" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition {% if status_filter == 'SCHEDULED' %}bg-blue-700 text-white{% else %}bg-white text-blue-800 hover:bg-blue-50 border border-blue-200{% endif %}">
+            Upcoming / Scheduled
+        </a>
+        <a href="{% url 'dept_admin_schemes' %}?status=EXPIRED" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition {% if status_filter == 'EXPIRED' %}bg-slate-700 text-white{% else %}bg-white text-slate-600 hover:bg-slate-100 border border-slate-200{% endif %}">
+            Closed / Expired
+        </a>
+        <a href="{% url 'dept_admin_schemes' %}?status=INACTIVE" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition {% if status_filter == 'INACTIVE' %}bg-rose-700 text-white{% else %}bg-white text-rose-800 hover:bg-rose-50 border border-rose-200{% endif %}">
+            Suspended
+        </a>
+    </div>
+
+    <!-- Schemes Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for s in schemes %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:border-emerald-300 transition">
+            <div>
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded">
+                            {{ s.target_audience }}
+                        </span>
+                        <span class="text-[10px] font-bold font-mono px-2 py-0.5 rounded {% if s.time_status == 'ACTIVE' %}bg-emerald-100 text-emerald-800 border border-emerald-200{% elif s.time_status == 'SCHEDULED' %}bg-blue-100 text-blue-800 border border-blue-200{% elif s.time_status == 'EXPIRED' %}bg-slate-100 text-slate-600 border border-slate-200{% else %}bg-rose-100 text-rose-700 border border-rose-200{% endif %}">
+                            {{ s.time_status }}
+                        </span>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <form method="POST" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="toggle_status">
+                            <input type="hidden" name="scheme_id" value="{{ s.id }}">
+                            <button type="submit" class="px-2 py-0.5 rounded text-[10px] font-bold border {% if s.is_active %}border-emerald-300 bg-emerald-50 text-emerald-800{% else %}border-slate-300 bg-slate-50 text-slate-600{% endif %}">
+                                {% if s.is_active %}Active{% else %}Inactive{% endif %}
+                            </button>
+                        </form>
+                        <button type="button" onclick="openEditSchemeModal('{{ s.id }}', '{{ s.title|escapejs }}', '{{ s.content|escapejs }}', '{{ s.eligibility_criteria|escapejs }}', '{{ s.benefits|escapejs }}', '{{ s.target_audience|escapejs }}', '{{ s.scheme_url|escapejs }}', '{{ s.valid_from|date:'Y-m-d\TH:i' }}', '{{ s.valid_until|date:'Y-m-d\TH:i'|default:'' }}', {{ s.is_active|yesno:'true,false' }})"
+                            class="text-blue-600 hover:text-blue-800 text-xs font-semibold">
+                            Edit
+                        </button>
+                        <form method="POST" onsubmit="return confirm('Delete this welfare scheme?');" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_scheme">
+                            <input type="hidden" name="scheme_id" value="{{ s.id }}">
+                            <button type="submit" class="text-rose-600 hover:text-rose-800 text-xs font-semibold">
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <h3 class="text-base font-bold text-slate-900">{{ s.title }}</h3>
+                <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">{{ s.content }}</p>
+
+                <!-- Benefits Block -->
+                {% if s.benefits %}
+                <div class="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900">
+                    <strong class="font-bold flex items-center mb-0.5">
+                        <i data-lucide="award" class="w-4 h-4 mr-1 text-emerald-600"></i> Benefits Offered:
+                    </strong>
+                    <div class="leading-relaxed">{{ s.benefits }}</div>
+                </div>
+                {% endif %}
+
+                <!-- Eligibility Block -->
+                {% if s.eligibility_criteria %}
+                <div class="mt-2.5 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700">
+                    <strong class="font-bold text-slate-900 flex items-center mb-0.5">
+                        <i data-lucide="check-square" class="w-3.5 h-3.5 mr-1 text-govblue-600"></i> Eligibility Criteria:
+                    </strong>
+                    <div class="leading-relaxed">{{ s.eligibility_criteria }}</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Time Window & Portal Link Footer -->
+            <div class="mt-4 pt-3 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs text-slate-500 font-mono gap-2">
+                <div class="space-y-0.5">
+                    <div>Start: <strong>{{ s.valid_from|date:"d M Y" }}</strong></div>
+                    <div>{% if s.valid_until %}Deadline: <strong class="text-amber-700">{{ s.valid_until|date:"d M Y" }}</strong>{% else %}Deadline: <strong>Open</strong>{% endif %}</div>
+                </div>
+
+                {% if s.scheme_url %}
+                <a href="{{ s.scheme_url }}" target="_blank" rel="noopener" class="inline-flex items-center px-3 py-1.5 bg-govblue-50 text-govblue-800 hover:bg-govblue-100 border border-govblue-200 rounded-lg text-xs font-bold transition">
+                    Application Portal <i data-lucide="external-link" class="w-3 h-3 ml-1"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-2 text-center py-12 bg-white rounded-2xl border border-dashed border-slate-200 p-8">
+            <i data-lucide="gift" class="w-12 h-12 mx-auto text-slate-300 mb-3"></i>
+            <h3 class="text-sm font-bold text-slate-800">No welfare schemes published for {{ dept.name }}</h3>
+            <p class="text-xs text-slate-500 mt-1">Launch a citizen subsidy or welfare program with application deadlines.</p>
+            <button type="button" onclick="document.getElementById('modal-create-scheme').classList.remove('hidden')"
+                class="mt-4 inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 shadow-sm">
+                + Launch First Welfare Scheme
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- Modal: Create Welfare Scheme -->
+<div id="modal-create-scheme" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-100">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <h3 class="text-base font-bold text-slate-900 flex items-center">
+                <i data-lucide="gift" class="w-5 h-5 mr-2 text-emerald-600"></i>
+                Launch Welfare Scheme for {{ dept.name }}
+            </h3>
+            <button type="button" onclick="document.getElementById('modal-create-scheme').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_scheme">
+
+            <div class="space-y-3.5 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Scheme Title *</label>
+                    <input type="text" name="title" required placeholder="e.g. GCC Rooftop Rainwater Harvesting Subsidy Scheme 2026" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Scheme Description / Overview *</label>
+                    <textarea name="content" rows="2" required placeholder="Summary of the scheme, objective, and department support..." class="w-full px-3 py-2 border border-slate-300 rounded-lg"></textarea>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Benefits Offered (Financial / In-Kind / Service)</label>
+                    <textarea name="benefits" rows="2" placeholder="e.g. 50% subsidy up to ₹10,000 for standard recharge well installation with inspection certification." class="w-full px-3 py-2 border border-slate-300 rounded-lg"></textarea>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Eligibility Criteria</label>
+                    <textarea name="eligibility_criteria" rows="2" placeholder="e.g. Property tax up to date; building area > 1000 sq.ft; residents within GCC limits." class="w-full px-3 py-2 border border-slate-300 rounded-lg"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Target Beneficiaries</label>
+                        <input type="text" name="target_audience" value="All Eligible Citizens" placeholder="e.g. Urban Homeowners" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Official Application URL</label>
+                        <input type="url" name="scheme_url" placeholder="https://chennaicorporation.gov.in/schemes/rwh" class="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono">
+                    </div>
+                </div>
+
+                <!-- Time-based Validity Window -->
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+                    <div class="text-[11px] font-bold text-slate-800 flex items-center">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5 mr-1 text-emerald-600"></i>
+                        Application Period & Deadline
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-semibold text-slate-600 text-[11px] mb-1">Applications Open (Valid From) *</label>
+                            <input type="datetime-local" name="valid_from" value="{{ now_iso }}" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-600 text-[11px] mb-1">Application Deadline (Valid Until)</label>
+                            <input type="datetime-local" name="valid_until" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-mono">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2 pt-1">
+                    <input type="checkbox" name="is_active" id="create-scheme-active" checked class="w-4 h-4 text-emerald-600 rounded">
+                    <label for="create-scheme-active" class="font-bold text-slate-800 text-xs">Publish Scheme on Citizen Hub immediately</label>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end space-x-3">
+                <button type="button" onclick="document.getElementById('modal-create-scheme').classList.add('hidden')" class="px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-600">Cancel</button>
+                <button type="submit" class="px-5 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 shadow-sm">Launch Scheme</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Edit Welfare Scheme -->
+<div id="modal-edit-scheme" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-100">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <h3 class="text-base font-bold text-slate-900">Update Welfare Scheme</h3>
+            <button type="button" onclick="document.getElementById('modal-edit-scheme').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="edit_scheme">
+            <input type="hidden" name="scheme_id" id="edit-scheme-id">
+
+            <div class="space-y-3.5 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Scheme Title *</label>
+                    <input type="text" name="title" id="edit-scheme-title" required class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Scheme Description *</label>
+                    <textarea name="content" id="edit-scheme-content" rows="2" required class="w-full px-3 py-2 border border-slate-300 rounded-lg"></textarea>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Benefits Offered</label>
+                    <textarea name="benefits" id="edit-scheme-benefits" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg"></textarea>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Eligibility Criteria</label>
+                    <textarea name="eligibility_criteria" id="edit-scheme-eligibility" rows="2" class="w-full px-3 py-2 border border-slate-300 rounded-lg"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Target Beneficiaries</label>
+                        <input type="text" name="target_audience" id="edit-scheme-audience" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Application URL</label>
+                        <input type="url" name="scheme_url" id="edit-scheme-url" class="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono">
+                    </div>
+                </div>
+
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+                    <div class="text-[11px] font-bold text-slate-800">Application Period</div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-semibold text-slate-600 text-[11px] mb-1">Valid From</label>
+                            <input type="datetime-local" name="valid_from" id="edit-scheme-valid-from" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-mono">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-600 text-[11px] mb-1">Deadline (Valid Until)</label>
+                            <input type="datetime-local" name="valid_until" id="edit-scheme-valid-until" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-mono">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2 pt-1">
+                    <input type="checkbox" name="is_active" id="edit-scheme-active" class="w-4 h-4 text-emerald-600 rounded">
+                    <label for="edit-scheme-active" class="font-bold text-slate-800 text-xs">Scheme is Active</label>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end space-x-3">
+                <button type="button" onclick="document.getElementById('modal-edit-scheme').classList.add('hidden')" class="px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-600">Cancel</button>
+                <button type="submit" class="px-5 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditSchemeModal(id, title, content, elig, benefits, audience, url, validFrom, validUntil, isActive) {
+    document.getElementById('edit-scheme-id').value = id;
+    document.getElementById('edit-scheme-title').value = title;
+    document.getElementById('edit-scheme-content').value = content;
+    document.getElementById('edit-scheme-eligibility').value = elig;
+    document.getElementById('edit-scheme-benefits').value = benefits;
+    document.getElementById('edit-scheme-audience').value = audience;
+    document.getElementById('edit-scheme-url').value = url;
+    document.getElementById('edit-scheme-valid-from').value = validFrom;
+    document.getElementById('edit-scheme-valid-until').value = validUntil;
+    document.getElementById('edit-scheme-active').checked = isActive;
+    document.getElementById('modal-edit-scheme').classList.remove('hidden');
+}
+</script>
+{% endblock %}

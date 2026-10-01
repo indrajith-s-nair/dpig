@@ -1,0 +1,21 @@
+category_code,category_name,dept_code,default_severity,sla_hours,escalation_l1_hours,escalation_l2_hours,escalation_l3_hours
+POTHOLE,Road Pothole Repair,ROADS,MEDIUM,36,12,24,48
+ROAD_CAVEIN,Road Cave-in / Collapse,ROADS,CRITICAL,6,2,4,8
+FOOTPATH_DAMAGED,Damaged Footpath / Missing Paver,ROADS,LOW,72,24,48,96
+GARBAGE_OVERFLOW,Overflowing Garbage Bin / Blackspot,SWM,HIGH,12,4,8,24
+GARBAGE_COLLECTION,Door to Door Collection Missed,SWM,MEDIUM,24,8,16,36
+DEAD_ANIMAL,Removal of Dead Animals,SWM,CRITICAL,6,2,4,12
+DEBRIS_DUMPING,Illegal C&D Debris Dumping,SWM,MEDIUM,48,16,32,72
+WATERLOGGING,Rainwater Stagnation / Waterlogging,SWD,HIGH,12,4,8,24
+DRAIN_CLOGGED,Stormwater Drain Silt / Clogged Drain,SWD,MEDIUM,24,8,16,48
+MANHOLE_OPEN,Open or Broken Drain / Manhole Cover,SWD,CRITICAL,6,2,4,8
+STREETLIGHT_OUT,Street Light Non-Functional,LIGHTS,MEDIUM,24,8,16,48
+POLE_DAMAGED,Damaged Electric Pole / Dangling Wire,LIGHTS,CRITICAL,6,2,4,12
+LIGHTS_DAYTIME,Street Lights Burning in Daytime,LIGHTS,LOW,24,8,16,48
+MOSQUITO_BREEDING,Mosquito Menace & Fogging Request,HEALTH,MEDIUM,24,8,16,48
+STRAY_DOGS,Stray Dog Control & Vaccination,HEALTH,MEDIUM,72,24,48,96
+CONTAMINATED_WATER,Contaminated Drinking Water Supply,WATER,CRITICAL,12,4,8,24
+SEWAGE_OVERFLOW,Underground Sewage Overflow on Road,WATER,HIGH,18,6,12,36
+PARK_MAINTENANCE,Park Cleaning & Play Equipment Repair,PARKS,LOW,72,24,48,120
+TREE_FALLEN,Fallen Tree / Dangerous Overhanging Branch,PARKS,HIGH,12,4,8,24
+PROPERTY_TAX,Property Tax Assessment / Name Transfer Issue,REVENUE,LOW,96,36,72,144

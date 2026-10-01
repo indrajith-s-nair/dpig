@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Inspection: {{ complaint.ticket_number }} - {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Breadcrumb & Top Bar -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-slate-200 mb-8 gap-4">
+        <div>
+            <div class="flex items-center space-x-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'auditor_dashboard' %}" class="hover:text-violet-700 flex items-center">
+                    <i data-lucide="arrow-left" class="w-3.5 h-3.5 mr-1"></i> Auditor Dashboard
+                </a>
+                <span>/</span>
+                <span class="font-mono text-slate-700 font-bold">{{ complaint.ticket_number }}</span>
+            </div>
+            <div class="flex items-center space-x-3">
+                <h1 class="text-2xl font-black text-slate-900 tracking-tight">{{ complaint.title }}</h1>
+                <span class="font-mono text-xs font-bold px-2.5 py-1 rounded bg-slate-100 text-slate-800 border border-slate-300">
+                    {{ complaint.ticket_number }}
+                </span>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <!-- Current Audit Status Badge -->
+            <div class="text-right">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Audit Determination</div>
+                <div class="mt-0.5">
+                    {% if complaint.audit_status == 'COMPLIANT' %}
+                        <span class="px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center">
+                            <i data-lucide="shield-check" class="w-3.5 h-3.5 mr-1 text-emerald-700"></i> Compliant
+                        </span>
+                    {% elif complaint.audit_status == 'FLAGGED_NON_COMPLIANT' %}
+                        <span class="px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-rose-100 text-rose-800 border border-rose-300 inline-flex items-center">
+                            <i data-lucide="flag" class="w-3.5 h-3.5 mr-1 text-rose-700"></i> Flagged Non-Compliant
+                        </span>
+                    {% elif complaint.audit_status == 'UNDER_REVIEW' %}
+                        <span class="px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-amber-100 text-amber-800 border border-amber-300 inline-flex items-center">
+                            <i data-lucide="eye" class="w-3.5 h-3.5 mr-1 text-amber-700"></i> Under Review
+                        </span>
+                    {% else %}
+                        <span class="px-2.5 py-1 rounded-md text-xs font-bold uppercase bg-slate-100 text-slate-600 border border-slate-300 inline-flex items-center">
+                            Not Audited Yet
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4-Pillar Policy & Compliance Rule Verification Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <!-- 1. Cryptographic Chain -->
+        <div class="p-4 rounded-xl border {% if all_blocks_valid %}bg-emerald-50/60 border-emerald-200{% else %}bg-rose-50/60 border-rose-200{% endif %}">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-bold uppercase tracking-wider {% if all_blocks_valid %}text-emerald-800{% else %}text-rose-800{% endif %}">
+                    1. SHA-256 Ledger
+                </span>
+                {% if all_blocks_valid %}
+                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
+                {% else %}
+                    <i data-lucide="x-circle" class="w-4 h-4 text-rose-600"></i>
+                {% endif %}
+            </div>
+            <div class="text-base font-black {% if all_blocks_valid %}text-emerald-900{% else %}text-rose-900{% endif %}">
+                {% if all_blocks_valid %}All {{ total_blocks }} Blocks Valid{% else %}Tampering Detected!{% endif %}
+            </div>
+            <div class="text-[11px] text-slate-500 mt-1">
+                Cryptographic hash continuity intact from genesis to latest block.
+            </div>
+        </div>
+
+        <!-- 2. SLA Compliance -->
+        <div class="p-4 rounded-xl border {% if not is_sla_violated %}bg-emerald-50/60 border-emerald-200{% else %}bg-rose-50/60 border-rose-200{% endif %}">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-bold uppercase tracking-wider {% if not is_sla_violated %}text-emerald-800{% else %}text-rose-800{% endif %}">
+                    2. SLA Policy
+                </span>
+                {% if not is_sla_violated %}
+                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
+                {% else %}
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-600"></i>
+                {% endif %}
+            </div>
+            <div class="text-base font-black {% if not is_sla_violated %}text-emerald-900{% else %}text-rose-900{% endif %}">
+                {% if not is_sla_violated %}Complied / On Track{% else %}SLA Breached{% endif %}
+            </div>
+            <div class="text-[11px] text-slate-500 mt-1">
+                Deadline: {{ complaint.sla_deadline|date:"d M Y, h:i A"|default:"Not specified" }}
+            </div>
+        </div>
+
+        <!-- 3. Resolution Proof -->
+        <div class="p-4 rounded-xl border {% if has_photo_proof %}bg-emerald-50/60 border-emerald-200{% elif complaint.status == 'RESOLVED' or complaint.status == 'CITIZEN_CONFIRMED' %}bg-rose-50/60 border-rose-200{% else %}bg-slate-50 border-slate-200{% endif %}">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-bold uppercase tracking-wider {% if has_photo_proof %}text-emerald-800{% elif complaint.status == 'RESOLVED' %}text-rose-800{% else %}text-slate-600{% endif %}">
+                    3. Proof Evidence
+                </span>
+                {% if has_photo_proof %}
+                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
+                {% elif complaint.status == 'RESOLVED' %}
+                    <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600"></i>
+                {% else %}
+                    <i data-lucide="clock" class="w-4 h-4 text-slate-400"></i>
+                {% endif %}
+            </div>
+            <div class="text-base font-black {% if has_photo_proof %}text-emerald-900{% elif complaint.status == 'RESOLVED' %}text-rose-900{% else %}text-slate-700{% endif %}">
+                {% if has_photo_proof %}Photo Proof Verified{% elif complaint.status == 'RESOLVED' %}Missing Photo Proof{% else %}Inspection Pending{% endif %}
+            </div>
+            <div class="text-[11px] text-slate-500 mt-1">
+                Mandatory before closing resolution according to municipal policy.
+            </div>
+        </div>
+
+        <!-- 4. Geospatial & DIGIPIN -->
+        <div class="p-4 rounded-xl border {% if has_valid_digipin %}bg-emerald-50/60 border-emerald-200{% else %}bg-amber-50/60 border-amber-200{% endif %}">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-bold uppercase tracking-wider {% if has_valid_digipin %}text-emerald-800{% else %}text-amber-800{% endif %}">
+                    4. India Post DIGIPIN
+                </span>
+                {% if has_valid_digipin %}
+                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
+                {% else %}
+                    <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600"></i>
+                {% endif %}
+            </div>
+            <div class="text-base font-black font-mono {% if has_valid_digipin %}text-emerald-900{% else %}text-amber-900{% endif %}">
+                {{ complaint.digipin|default:"Missing DIGIPIN" }}
+            </div>
+            <div class="text-[11px] text-slate-500 mt-1">
+                Coordinates: {{ complaint.latitude|floatformat:4 }}, {{ complaint.longitude|floatformat:4 }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Inspection Grid (2 Columns: Left Details & Proofs, Right Action Panel) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <!-- Left 2 Cols: Complaint Attributes & Resolution Proofs -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Complaint Summary Card -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
+                <h3 class="text-sm font-bold text-slate-900 mb-4 pb-3 border-b border-slate-100 flex items-center">
+                    <i data-lucide="info" class="w-4 h-4 mr-2 text-violet-600"></i> Grievance Record & Administrative Scope
+                </h3>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+                    <div>
+                        <span class="text-slate-400 block font-medium">Department</span>
+                        <span class="font-bold text-slate-800">{{ complaint.department.name|default:"Unassigned" }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block font-medium">Category</span>
+                        <span class="font-bold text-slate-800">{{ complaint.category.name|default:"General" }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block font-medium">Administrative Jurisdiction</span>
+                        <span class="font-bold text-slate-800">Zone {{ complaint.zone.number }} • Ward {{ complaint.ward.number|default:"N/A" }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block font-medium">Current Workflow Level</span>
+                        <span class="font-bold text-indigo-700 font-mono">{{ complaint.current_level_label }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block font-medium">Current Assignee</span>
+                        <span class="font-bold text-slate-800">
+                            {% if complaint.current_assignee %}
+                                {{ complaint.current_assignee.get_full_name|default:complaint.current_assignee.username }}
+                            {% else %}
+                                Unassigned
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block font-medium">Citizen / Complainant</span>
+                        <span class="font-bold text-slate-800">{{ complaint.citizen_name|default:"Anonymous Resident" }}</span>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-slate-100">
+                    <span class="text-slate-400 block text-xs font-medium mb-1">Grievance Description</span>
+                    <p class="text-xs text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        {{ complaint.description }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Resolution & Proof Evidence Inspection Card -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
+                <h3 class="text-sm font-bold text-slate-900 mb-4 pb-3 border-b border-slate-100 flex items-center justify-between">
+                    <span class="flex items-center">
+                        <i data-lucide="camera" class="w-4 h-4 mr-2 text-emerald-600"></i> Field Inspection & Resolution Proofs
+                    </span>
+                    {% if complaint.resolved_at %}
+                    <span class="text-[11px] text-slate-500 font-mono">Resolved: {{ complaint.resolved_at|date:"d M Y, h:i A" }}</span>
+                    {% endif %}
+                </h3>
+
+                {% if complaint.resolution_image or complaint.resolution_notes %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {% if complaint.resolution_image %}
+                    <div>
+                        <span class="text-xs font-bold text-slate-700 block mb-2">Attached Photographic Proof</span>
+                        <div class="rounded-xl overflow-hidden border border-slate-200 shadow-xs bg-slate-100">
+                            <img src="{{ complaint.resolution_image.url }}" alt="Resolution Proof" class="w-full h-48 object-cover hover:scale-105 transition duration-300">
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="p-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-xs">
+                        <strong class="block mb-1">Policy Violation Flag:</strong>
+                        Grievance was marked as RESOLVED without attaching mandatory field photograph evidence.
+                    </div>
+                    {% endif %}
+
+                    <div>
+                        <span class="text-xs font-bold text-slate-700 block mb-2">Officer Resolution Notes</span>
+                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 h-48 overflow-y-auto leading-relaxed">
+                            {{ complaint.resolution_notes|default:"No written notes provided by field staff." }}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="py-8 text-center text-slate-400 text-xs">
+                    <i data-lucide="clock" class="w-6 h-6 mx-auto mb-2 text-slate-300"></i>
+                    No resolution proofs submitted yet. Complaint is currently in <strong>{{ complaint.get_status_display }}</strong> state.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right 1 Col: Auditor Action & Determination Panel -->
+        <div class="space-y-6">
+            <div class="bg-white rounded-2xl border border-violet-200 shadow-sm p-6 sticky top-24">
+                <div class="flex items-center space-x-2 text-violet-800 font-black text-sm mb-4 pb-3 border-b border-violet-100">
+                    <i data-lucide="gavel" class="w-4 h-4 text-violet-700"></i>
+                    <span>Record Statutory Audit Finding</span>
+                </div>
+
+                <form method="POST" action="{% url 'auditor_record_action' complaint.id %}" class="space-y-4">
+                    {% csrf_token %}
+
+                    <!-- Audit Status Determination -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Audit Determination *</label>
+                        <select name="audit_status" required class="w-full text-xs px-3 py-2 border border-slate-300 rounded-xl bg-white font-medium focus:ring-2 focus:ring-violet-600">
+                            <option value="COMPLIANT" {% if complaint.audit_status == 'COMPLIANT' %}selected{% endif %}>✓ Compliant with Rules & Policies</option>
+                            <option value="FLAGGED_NON_COMPLIANT" {% if complaint.audit_status == 'FLAGGED_NON_COMPLIANT' %}selected{% endif %}>⚠ Flag Non-Compliant (Violation)</option>
+                            <option value="UNDER_REVIEW" {% if complaint.audit_status == 'UNDER_REVIEW' %}selected{% endif %}>🔍 Under Audit Review</option>
+                        </select>
+                    </div>
+
+                    <!-- Statutory Audit Notes -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Auditor Observations / Policy Directives *</label>
+                        <textarea name="audit_notes" rows="4" required placeholder="Enter statutory audit findings, specific rule breaches observed, or clearance rationale..."
+                                  class="w-full text-xs p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-violet-600 focus:outline-none leading-relaxed">{{ complaint.audit_notes }}</textarea>
+                    </div>
+
+                    <!-- Structured Finding Option -->
+                    <div class="pt-3 border-t border-slate-100">
+                        <label class="flex items-center space-x-2 cursor-pointer mb-3">
+                            <input type="checkbox" name="create_finding" value="1" id="chk_finding" onchange="toggleFindingSection(this.checked)"
+                                   {% if complaint.audit_status == 'FLAGGED_NON_COMPLIANT' %}checked{% endif %}
+                                   class="rounded text-violet-600 focus:ring-violet-500">
+                            <span class="text-xs font-bold text-slate-700">Register Statutory Finding Record</span>
+                        </label>
+
+                        <div id="finding_details_section" class="space-y-3 {% if complaint.audit_status != 'FLAGGED_NON_COMPLIANT' %}hidden{% endif %}">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Violation Category</label>
+                                <select name="finding_category" class="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white">
+                                    {% for code, label in finding_categories %}
+                                    <option value="{{ code }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Severity Tier</label>
+                                <select name="finding_severity" class="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg bg-white">
+                                    {% for code, label in severity_levels %}
+                                    <option value="{{ code }}" {% if code == 'HIGH' %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Corrective Action Required</label>
+                                <input type="text" name="action_required" placeholder="e.g. Resubmit photo evidence, re-inspect ward..."
+                                       class="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-2.5 bg-violet-700 hover:bg-violet-800 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center">
+                        <i data-lucide="check-shield" class="w-4 h-4 mr-1.5"></i> Commit Audit Determination
+                    </button>
+                    <p class="text-[10px] text-slate-400 text-center">
+                        Recording this action appends an immutable block to the grievance SHA-256 audit ledger.
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cryptographic SHA-256 Merkle Block Ledger Explorer -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-100 mb-6 gap-2">
+            <div>
+                <h3 class="text-base font-black text-slate-900 flex items-center">
+                    <i data-lucide="layers" class="w-4 h-4 mr-2 text-violet-600"></i> Cryptographic SHA-256 Block Ledger Explorer
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Immutable append-only ledger for every state transition, SLA escalation, and auditor determination.
+                </p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="text-xs font-mono font-bold px-2 py-1 rounded bg-violet-50 text-violet-800 border border-violet-200">
+                    Total Blocks: {{ total_blocks }}
+                </span>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            {% for item in blocks %}
+            <div class="p-4 rounded-xl border {% if item.is_valid %}bg-slate-50/50 border-slate-200{% else %}bg-rose-50 border-rose-300{% endif %} font-mono text-xs">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-slate-200/60 gap-2 mb-3">
+                    <div class="flex items-center space-x-2">
+                        <span class="px-2 py-0.5 rounded bg-slate-200 text-slate-800 font-bold text-[11px]">
+                            Block #{{ item.index }}
+                        </span>
+                        <span class="font-bold text-slate-900">{{ item.block.action }}</span>
+                        <span class="text-slate-400">• {{ item.block.actor_role }} ({% if item.block.performed_by %}{{ item.block.performed_by.username }}{% else %}SYSTEM{% endif %})</span>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <span class="text-[11px] text-slate-500">{{ item.block.created_at|date:"d M Y, h:i:s A" }}</span>
+                        {% if item.is_valid %}
+                            <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px] inline-flex items-center">
+                                <i data-lucide="check" class="w-3 h-3 mr-1"></i> VALID
+                            </span>
+                        {% else %}
+                            <span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-bold text-[10px] inline-flex items-center">
+                                <i data-lucide="alert-octagon" class="w-3 h-3 mr-1"></i> TAMPERED
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
+                    <div>
+                        <span class="text-slate-400 block">Previous Hash (H_{{ item.index|add:"-1" }}):</span>
+                        <span class="text-slate-600 break-all select-all font-mono">{{ item.block.previous_hash }}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block">Current Hash (H_{{ item.index }}):</span>
+                        <span class="text-violet-700 font-bold break-all select-all font-mono">{{ item.block.current_hash }}</span>
+                    </div>
+                </div>
+
+                {% if item.block.details %}
+                <div class="mt-3 pt-2 border-t border-slate-200/50">
+                    <span class="text-slate-400 block text-[10px] uppercase font-bold mb-1">Payload Details:</span>
+                    <pre class="bg-white p-2.5 rounded-lg border border-slate-200 text-[11px] text-slate-700 overflow-x-auto">{{ item.details_json }}</pre>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleFindingSection(show) {
+    const s = document.getElementById('finding_details_section');
+    if (show) {
+        s.classList.remove('hidden');
+    } else {
+        s.classList.add('hidden');
+    }
+}
+</script>
+{% endblock %}

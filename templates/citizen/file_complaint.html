@@ -1,0 +1,1044 @@
+{% extends "base.html" %}
+
+{% block title %}Register Civic Grievance - {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div class="mb-8">
+        <span class="text-xs font-bold text-govblue-700 uppercase tracking-widest">Public Service Delivery</span>
+        <h1 class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">Register a Civic Grievance</h1>
+        <p class="text-sm text-slate-600 mt-1">
+            Pinpoint the issue on the map to generate your <strong>DIGIPIN</strong>, attach a photo, and submit. You will receive real-time email status updates and SLA tracking.
+        </p>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" class="space-y-8 bg-white p-6 sm:p-10 rounded-2xl border border-slate-200 shadow-sm" id="grievanceForm">
+        {% csrf_token %}
+
+        <!-- 1. Location & DIGIPIN Section -->
+        <div>
+            <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                <h3 class="text-base font-bold text-slate-900 flex items-center">
+                    <i data-lucide="map-pin" class="w-5 h-5 mr-2 text-govblue-700"></i>
+                    1. Pinpoint Location & DIGIPIN
+                </h3>
+                <button type="button" id="btnLocateMe" class="inline-flex items-center px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-govblue-700 rounded-lg text-xs font-bold transition">
+                    <i data-lucide="crosshair" class="w-3.5 h-3.5 mr-1.5"></i> Locate Me (GPS)
+                </button>
+            </div>
+
+            <!-- DIGIPIN Live Display Banner -->
+            <div class="bg-gradient-to-r from-blue-900 to-slate-900 text-white p-4 rounded-xl mb-4 shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <div class="text-[11px] text-cyan-300 font-semibold uppercase tracking-wider">India Post & IIT Hyderabad National Grid</div>
+                    <div class="text-xl sm:text-2xl font-black font-mono tracking-wider text-amber-300 mt-0.5" id="digipinDisplay">
+                        CALCULATING...
+                    </div>
+                    <div class="text-xs text-slate-300">Precision: ~3.8m × 3.8m hierarchical cell</div>
+                </div>
+                <div class="text-right">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <i data-lucide="shield-check" class="w-3 h-3 mr-1"></i> Address-as-a-Service Ready
+                    </span>
+                </div>
+            </div>
+
+            <!-- Map Container -->
+            <div id="map" class="w-full h-72 sm:h-80 rounded-xl border border-slate-200 shadow-inner overflow-hidden mb-4"></div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Latitude</label>
+                    <input type="text" name="latitude" id="inputLat" value="{{ default_lat }}" readonly
+                           class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-bold text-slate-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Longitude</label>
+                    <input type="text" name="longitude" id="inputLng" value="{{ default_lng }}" readonly
+                           class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-bold text-slate-700">
+                </div>
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-bold text-slate-700">DIGIPIN Code</label>
+                        <span class="text-[10px] text-govblue-600 font-bold">10-Char Grid Code</span>
+                    </div>
+                    <input type="text" name="digipin" id="inputDigipin" placeholder="e.g. 4T3-84L-L5L9" maxlength="12"
+                           class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-bold text-govblue-800 uppercase focus:bg-white focus:ring-2 focus:ring-govblue-600 focus:outline-none">
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <label class="block text-xs font-bold text-slate-700 mb-1">Street Address / Landmark</label>
+                <input type="text" name="address_landmark" placeholder="e.g. Near Ripon Building, EVR Periyar Salai, Park Town"
+                       class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-govblue-600 focus:outline-none">
+            </div>
+        </div>
+
+        <!-- 2. Grievance Details Section -->
+        <div>
+            <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                <h3 class="text-base font-bold text-slate-900 flex items-center">
+                    <i data-lucide="file-text" class="w-5 h-5 mr-2 text-govblue-700"></i>
+                    2. Grievance Details
+                </h3>
+                <span class="text-xs text-slate-400">Gemini AI Auto-Triage Enabled</span>
+            </div>
+
+            <!-- Workflow Intake Guidance Banner (as per GCC Complaint Workflow) -->
+            <div class="p-3.5 bg-gradient-to-r from-blue-50 via-indigo-50 to-cyan-50 border border-blue-200 rounded-xl mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-700 shadow-2xs">
+                <div class="flex items-center space-x-2.5">
+                    <span class="w-6 h-6 rounded-full bg-govblue-700 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">1</span>
+                    <div>
+                        <span class="font-bold text-govblue-900">Intake & Sequential Routing:</span>
+                        <span class="text-slate-600 ml-1">Select Zone (1 of 15) & Grievance Type &rarr; Concerned Department Identified &rarr; Assigned to <strong>DL1 Officer</strong> with immediate SLA.</span>
+                    </div>
+                </div>
+                <span class="inline-flex items-center px-2.5 py-1 bg-white rounded-lg border border-blue-200 font-bold text-[11px] text-govblue-800 shadow-2xs">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5 mr-1 text-govblue-600"></i> Auto-Escalation: DL1 &rarr; DL2 &rarr; DL3 &rarr; CL1 &rarr; CL2 &rarr; CL3 &rarr; CM Office
+                </span>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-bold text-slate-700">Grievance Title *</label>
+                        <span id="titleAutoBadge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 items-center">
+                            <i data-lucide="sparkles" class="w-3 h-3 mr-1 text-emerald-600 inline"></i> Auto-Generated by AI
+                        </span>
+                    </div>
+                    <div class="relative">
+                        <input type="text" name="title" id="inputTitle" required placeholder="e.g. Broken Stormwater Drain Causing Waterlogging"
+                               class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-govblue-600 focus:outline-none transition-all pr-28">
+                        <button type="button" id="btnAutoGenerateTitle" title="Auto-generate or refresh title based on grievance description"
+                                class="absolute right-1.5 top-1.5 bottom-1.5 px-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-md border border-indigo-200 transition flex items-center shadow-xs">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5 mr-1 text-indigo-600"></i> Auto-Title
+                        </button>
+                    </div>
+                    <p id="titleHint" class="text-[11px] text-slate-500 mt-1 flex items-center">
+                        <i data-lucide="info" class="w-3 h-3 mr-1 text-slate-400 inline"></i>
+                        <span>Auto-populates as you type your grievance description. You can freely edit or override it anytime.</span>
+                    </p>
+                </div>
+
+                <!-- Intake Row: Zone (1 of 15), Ward, and Grievance Category (Complaint Type) -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-bold text-slate-700">Select Zone (1 of 15) *</label>
+                            <span class="text-[10px] text-govblue-700 font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">Intake Step 1</span>
+                        </div>
+                        <select name="zone" id="zoneSelect" required class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-govblue-600 focus:outline-none transition-all">
+                            <option value="">-- Select Zone (1 to 15) --</option>
+                            {% for z in zones %}
+                            <option value="{{ z.id }}" data-zone-number="{{ z.number }}">Zone {{ z.number }}: {{ z.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-[11px] text-slate-500 mt-1 flex items-center">
+                            <i data-lucide="compass" class="w-3 h-3 mr-1 text-slate-400 inline"></i>
+                            <span>All 15 GCC Administrative Zones</span>
+                        </p>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-bold text-slate-700">Ward Selection *</label>
+                            <span id="wardAutoBadge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 items-center">
+                                <i data-lucide="check-check" class="w-3 h-3 mr-1 text-emerald-600 inline"></i> Auto-Populated
+                            </span>
+                        </div>
+                        <select name="ward" id="wardSelect" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-govblue-600 focus:outline-none transition-all">
+                            <option value="">-- Select Ward --</option>
+                            {% for w in wards %}
+                            <option value="{{ w.id }}" data-ward-number="{{ w.number }}" data-zone="{{ w.zone.number }}" data-zone-id="{{ w.zone.id }}" data-lat="{{ w.centroid_lat }}" data-lng="{{ w.centroid_lng }}">{{ w.name }} (Zone {{ w.zone.number }})</option>
+                            {% endfor %}
+                        </select>
+                        <p id="wardHintText" class="text-[11px] text-slate-500 mt-1 flex items-center">
+                            <i data-lucide="map-pin" class="w-3 h-3 mr-1 text-govblue-600 inline"></i>
+                            <span id="wardHintMessage">Filters by Zone or auto-populates via map pin / DIGIPIN</span>
+                        </p>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-bold text-slate-700">Complaint Type / Category</label>
+                            <span class="text-[10px] text-indigo-700 font-bold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">DL1 Routing</span>
+                        </div>
+                        <select name="category" id="categorySelect" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-govblue-600 focus:outline-none">
+                            <option value="">-- Let Gemini AI Auto-Classify --</option>
+                            {% for c in categories %}
+                            <option value="{{ c.id }}" data-sla="{{ c.sla_hours }}" data-dept="{{ c.department.code }}">
+                                {{ c.name }} ({{ c.department.code }} - {{ c.sla_hours }}h SLA)
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-[11px] text-slate-500 mt-1 flex items-center">
+                            <i data-lucide="layers" class="w-3 h-3 mr-1 text-slate-400 inline"></i>
+                            <span>Department & SLA auto-assigned</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-1.5">
+                        <label class="block text-xs font-bold text-slate-700">Description (Supports 10 Indian Scripts: Hindi, Tamil, Telugu, Malayalam, Kannada, Bengali, Gujarati, Punjabi, Odia, Sinhala & Transliterations) *</label>
+                        
+                        <!-- Voice Input Controls with Spoken Language Selector -->
+                        <div class="flex items-center space-x-1.5 bg-slate-50 p-1 rounded-lg border border-slate-200 shadow-sm">
+                            <label for="voiceLangSelect" class="text-[10px] font-bold text-slate-500 uppercase px-1">Spoken Lang:</label>
+                            <select id="voiceLangSelect" class="text-xs font-bold text-govblue-800 bg-white border border-slate-200 rounded px-2 py-1 focus:ring-1 focus:ring-govblue-600 focus:outline-none">
+                                <option value="ta-IN" selected>Tamil (தமிழ்)</option>
+                                <option value="ml-IN">Malayalam (മലയാളം)</option>
+                                <option value="hi-IN">Hindi (हिन्दी)</option>
+                                <option value="te-IN">Telugu (తెలుగు)</option>
+                                <option value="kn-IN">Kannada (ಕನ್ನಡ)</option>
+                                <option value="bn-IN">Bengali (বাংলা)</option>
+                                <option value="gu-IN">Gujarati (ગુજરાતી)</option>
+                                <option value="pa-IN">Punjabi (ਪੰਜਾਬੀ)</option>
+                                <option value="or-IN">Odia (ଓଡ଼ିଆ)</option>
+                                <option value="si-LK">Sinhala (සිංහල)</option>
+                                <option value="en-IN">English (India)</option>
+                            </select>
+                            <button type="button" id="btnVoiceInput" class="inline-flex items-center px-2.5 py-1 text-xs font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 rounded border border-rose-200 transition">
+                                <i data-lucide="mic" class="w-3.5 h-3.5 mr-1"></i> <span id="voiceText">Voice Input</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-1.5 mb-2">
+                        <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium border border-slate-200">Hindi (U+0900)</span>
+                        <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium border border-slate-200">Tamil (U+0B80)</span>
+                        <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium border border-slate-200">Malayalam (U+0D00)</span>
+                        <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium border border-slate-200">Telugu (U+0C00)</span>
+                        <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium border border-slate-200">Kannada (U+0C80)</span>
+                        <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium border border-slate-200">Bengali (U+0980)</span>
+                        <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium border border-slate-200">Gujarati (U+0A80)</span>
+                        <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium border border-slate-200">Punjabi (U+0A00)</span>
+                        <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium border border-slate-200">Odia (U+0B00)</span>
+                        <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium border border-slate-200">Sinhala (U+0D80)</span>
+                        <span class="text-[10px] bg-purple-50 text-purple-700 px-2 py-0.5 rounded font-bold border border-purple-200">Transliterations (Manglish / Tanglish / Hinglish / Tenglish)</span>
+                    </div>
+
+                    <textarea name="description" id="inputDesc" rows="4" required
+                              placeholder="Please describe the issue in detail. You may type in Hindi, Tamil, Telugu, Malayalam, Kannada, Bengali, Gujarati, Punjabi, Odia, Sinhala, Hinglish, or English..."
+                              class="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-govblue-600 focus:outline-none"></textarea>
+
+                    <!-- Real-Time Unicode Script & Automated Translation Header Indicator -->
+                    <div id="scriptDetectorBox" class="mt-2.5 p-3.5 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-indigo-200 rounded-xl transition-all duration-200">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex items-center space-x-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span class="font-bold text-xs text-indigo-950" id="detectedScriptLabel">Script: Latin (Default)</span>
+                                <span class="text-[10px] font-mono bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-bold" id="detectedScriptRange">U+0020–U+007F</span>
+                            </div>
+                            <span class="text-[10px] uppercase font-black text-indigo-700 bg-white/80 px-2.5 py-0.5 rounded-full border border-indigo-200 shadow-sm" id="preservationBadge">
+                                Original Text Verbatim Preserved
+                            </span>
+                        </div>
+                        <div id="translationHeaderBanner" class="mt-2.5 p-2.5 bg-white/90 rounded-lg border border-indigo-200 text-xs font-medium text-indigo-900 flex items-start space-x-2">
+                            <i data-lucide="languages" class="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0"></i>
+                            <span id="translationHeaderText" class="font-mono text-[11px] leading-snug">
+                                [AUTOMATED TRANSLATION • Original text preserved • English translation generated for municipal action]
+                            </span>
+                        </div>
+                        <div id="translationPreviewBox" class="mt-2 p-2.5 bg-emerald-50/90 rounded-lg border border-emerald-200 text-xs text-emerald-950">
+                            <div class="font-bold text-[10px] uppercase tracking-wider text-emerald-800 flex items-center mb-1">
+                                <i data-lucide="sparkles" class="w-3 h-3 mr-1 text-emerald-600"></i>
+                                Live English Triage Translation Preview:
+                            </div>
+                            <div id="translatedTextPreview" class="text-xs text-slate-800 italic bg-white p-2 rounded border border-emerald-100">
+                                Type above to see live script detection and English translation preview...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Attach Photo Evidence (Camera / File)</label>
+                    <input type="file" name="image" accept="image/*" id="inputImage"
+                           class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-govblue-700 hover:file:bg-blue-100">
+                    <div id="imagePreview" class="mt-3 hidden">
+                        <img src="" alt="Preview" class="h-32 rounded-lg border border-slate-200 object-cover shadow-sm">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Citizen Identity & Contact Section -->
+        <div>
+            <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                <h3 class="text-base font-bold text-slate-900 flex items-center">
+                    <i data-lucide="user" class="w-5 h-5 mr-2 text-govblue-700"></i>
+                    3. Registered Citizen Identity & Contact Details
+                </h3>
+                <span class="text-xs text-emerald-600 font-semibold flex items-center">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5 mr-1 text-emerald-600"></i> UIDAI Aadhaar Verified Citizen
+                </span>
+            </div>
+
+            <!-- Registered Citizen Verification Card -->
+            <div class="mb-5 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 flex-shrink-0">
+                        <i data-lucide="shield-check" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-emerald-900 flex items-center flex-wrap gap-1.5">
+                            <span>Registered Citizen Complainant: <strong>{{ user.get_full_name|default:user.username }}</strong></span>
+                            <span class="px-2 py-0.5 bg-emerald-200 text-emerald-800 rounded-full text-[10px] font-black tracking-wider uppercase">VERIFIED</span>
+                        </div>
+                        <div class="text-xs text-emerald-700 mt-0.5">
+                            Citizen ID: <span class="font-mono font-bold">{{ user.username }}</span> &bull; Masked Aadhaar: <span class="font-mono font-bold">•••• •••• {{ user.profile.aadhaar_last4|default:"7890" }}</span> (SHA-256 Verified Complainant)
+                        </div>
+                    </div>
+                </div>
+                <span class="text-xs font-bold text-emerald-800 bg-white px-3 py-1.5 rounded-lg border border-emerald-200 shadow-2xs flex items-center flex-shrink-0">
+                    <i data-lucide="check-circle" class="w-3.5 h-3.5 mr-1 text-emerald-600"></i> UIDAI KYC Bound
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Your Full Name *</label>
+                    <input type="text" name="citizen_name" required value="{{ user.get_full_name|default:user.username }}"
+                           placeholder="Karthik Raman"
+                           class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-govblue-600 focus:outline-none font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Registered Email (For Status & SLA Alerts) *</label>
+                    <input type="email" name="citizen_email" required value="{{ user.email }}"
+                           placeholder="citizen@example.com"
+                           class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-govblue-600 focus:outline-none font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Phone Number (SMS Notifications)</label>
+                    <input type="tel" name="citizen_phone" value="{{ user.profile.phone|default:'' }}"
+                           placeholder="9840123456"
+                           class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-govblue-600 focus:outline-none font-medium">
+                </div>
+            </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="text-xs text-slate-500">
+                By submitting, your complaint will be stamped with an immutable SHA-256 hash block.
+            </div>
+            <button type="submit" class="w-full sm:w-auto px-8 py-3.5 bg-govblue-700 hover:bg-govblue-800 text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center">
+                <i data-lucide="send" class="w-4 h-4 mr-2"></i> Submit Grievance & Begin SLA Clock
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const defaultLat = parseFloat("{{ default_lat }}") || 13.0827;
+        const defaultLng = parseFloat("{{ default_lng }}") || 80.2707;
+
+        // Initialize Leaflet Map with Humanitarian OpenStreetMap (Zero API key, reliable CDN)
+        const map = L.map('map').setView([defaultLat, defaultLng], 14);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            subdomains: 'abc',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/" target="_blank">Humanitarian OpenStreetMap Team</a>'
+        }).addTo(map);
+
+        let marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+
+        const zoneSelect = document.getElementById('zoneSelect');
+        const wardSelect = document.getElementById('wardSelect');
+        const wardAutoBadge = document.getElementById('wardAutoBadge');
+        const wardHintMessage = document.getElementById('wardHintMessage');
+        const inputDigipin = document.getElementById('inputDigipin');
+
+        function filterWardsByZone(zoneNum) {
+            if (!wardSelect) return null;
+            const strZone = String(zoneNum || '');
+            let firstMatch = null;
+            for (let i = 0; i < wardSelect.options.length; i++) {
+                const opt = wardSelect.options[i];
+                if (!opt.value) continue;
+                const optZone = opt.getAttribute('data-zone');
+                if (!strZone || optZone === strZone) {
+                    opt.hidden = false;
+                    opt.disabled = false;
+                    if (!firstMatch) firstMatch = opt;
+                } else {
+                    opt.hidden = true;
+                    opt.disabled = true;
+                }
+            }
+            return firstMatch;
+        }
+
+        function applyAutoWard(wardData) {
+            if (!wardData) return;
+
+            // Synchronize Zone Select
+            if (zoneSelect && wardData.zone_number) {
+                for (let i = 0; i < zoneSelect.options.length; i++) {
+                    const opt = zoneSelect.options[i];
+                    if (opt.getAttribute('data-zone-number') == wardData.zone_number) {
+                        zoneSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+                filterWardsByZone(wardData.zone_number);
+            }
+
+            if (!wardSelect) return;
+
+            // Set select value to resolved ward ID
+            wardSelect.value = String(wardData.ward_id);
+
+            // Fallback match by ward number if value wasn't set
+            if (!wardSelect.value) {
+                for (let i = 0; i < wardSelect.options.length; i++) {
+                    const opt = wardSelect.options[i];
+                    if (opt.getAttribute('data-ward-number') == wardData.ward_number || opt.text.startsWith(`Ward ${wardData.ward_number} `)) {
+                        wardSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            // Visual feedback indicator
+            if (wardAutoBadge) {
+                wardAutoBadge.classList.remove('hidden');
+                wardAutoBadge.classList.add('inline-flex');
+                wardAutoBadge.innerHTML = `<i data-lucide="check-check" class="w-3 h-3 mr-1 text-emerald-600 inline"></i> Auto-Populated (Zone ${wardData.zone_number})`;
+            }
+
+            if (wardHintMessage) {
+                const distStr = wardData.distance_km ? ` (~${wardData.distance_km} km from centroid)` : '';
+                wardHintMessage.innerHTML = `<span class="text-emerald-700 font-bold">Auto-Selected:</span> ${wardData.ward_name} (Zone ${wardData.zone_number} - ${wardData.zone_name})${distStr}`;
+            }
+
+            // Highlight animation on the ward dropdown
+            wardSelect.classList.add('ring-2', 'ring-emerald-500', 'border-emerald-500', 'bg-emerald-50/40');
+            setTimeout(() => {
+                wardSelect.classList.remove('ring-2', 'ring-emerald-500', 'bg-emerald-50/40');
+            }, 1200);
+
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function updateLocation(lat, lng) {
+            document.getElementById('inputLat').value = lat.toFixed(6);
+            document.getElementById('inputLng').value = lng.toFixed(6);
+
+            // Fetch live DIGIPIN and auto-resolved Ward from API
+            fetch(`/api/digipin/encode/?lat=${lat}&lon=${lng}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'SUCCESS') {
+                        document.getElementById('digipinDisplay').innerText = data.digipin;
+                        if (inputDigipin) inputDigipin.value = data.digipin;
+
+                        // Auto-populate Ward Selection based on Location & DIGIPIN
+                        if (data.ward && data.ward.ward_id) {
+                            applyAutoWard(data.ward);
+                        }
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('digipinDisplay').innerText = "ONLINE GENERATION ACTIVE";
+                });
+        }
+
+        function lookupDigipin(code) {
+            const clean = (code || '').replace(/[^A-Za-z0-9]/g, '');
+            if (clean.length < 4) return;
+
+            fetch(`/api/digipin/decode/?code=${encodeURIComponent(clean)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'SUCCESS') {
+                        const newLat = data.latitude;
+                        const newLng = data.longitude;
+                        map.setView([newLat, newLng], 16);
+                        marker.setLatLng([newLat, newLng]);
+                        document.getElementById('inputLat').value = newLat.toFixed(6);
+                        document.getElementById('inputLng').value = newLng.toFixed(6);
+                        document.getElementById('digipinDisplay').innerText = data.digipin;
+                        if (inputDigipin) inputDigipin.value = data.digipin;
+
+                        // Auto-populate Ward based on decoded DIGIPIN
+                        if (data.ward && data.ward.ward_id) {
+                            applyAutoWard(data.ward);
+                        }
+                    }
+                })
+                .catch(() => {});
+        }
+
+        // Live DIGIPIN input listener
+        if (inputDigipin) {
+            inputDigipin.addEventListener('input', function(e) {
+                let v = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().substring(0, 10);
+                let formatted = '';
+                for (let i = 0; i < v.length; i++) {
+                    if (i === 3 || i === 6) formatted += '-';
+                    formatted += v[i];
+                }
+                e.target.value = formatted;
+
+                if (v.length === 10) {
+                    lookupDigipin(v);
+                }
+            });
+
+            inputDigipin.addEventListener('change', function(e) {
+                lookupDigipin(e.target.value);
+            });
+        }
+
+        // Zone Selection change listener (filters wards for that zone & pans)
+        if (zoneSelect) {
+            zoneSelect.addEventListener('change', function(e) {
+                const opt = zoneSelect.options[zoneSelect.selectedIndex];
+                const zoneNum = opt ? opt.getAttribute('data-zone-number') : '';
+                const firstOpt = filterWardsByZone(zoneNum);
+                const currentWardOpt = wardSelect.options[wardSelect.selectedIndex];
+                if (currentWardOpt && currentWardOpt.getAttribute('data-zone') !== zoneNum && firstOpt) {
+                    wardSelect.value = firstOpt.value;
+                    wardSelect.dispatchEvent(new Event('change'));
+                }
+            });
+        }
+
+        // Ward Selection change listener (two-way sync with map & zone)
+        if (wardSelect) {
+            wardSelect.addEventListener('change', function(e) {
+                const opt = wardSelect.options[wardSelect.selectedIndex];
+                if (!opt || !opt.value) return;
+                const optZone = opt.getAttribute('data-zone');
+                if (zoneSelect && optZone) {
+                    for (let i = 0; i < zoneSelect.options.length; i++) {
+                        if (zoneSelect.options[i].getAttribute('data-zone-number') === optZone) {
+                            zoneSelect.selectedIndex = i;
+                            break;
+                        }
+                    }
+                    filterWardsByZone(optZone);
+                }
+                const lat = parseFloat(opt.getAttribute('data-lat'));
+                const lng = parseFloat(opt.getAttribute('data-lng'));
+                if (!isNaN(lat) && !isNaN(lng) && lat > 0 && lng > 0) {
+                    map.setView([lat, lng], 15);
+                    marker.setLatLng([lat, lng]);
+                    document.getElementById('inputLat').value = lat.toFixed(6);
+                    document.getElementById('inputLng').value = lng.toFixed(6);
+                    fetch(`/api/digipin/encode/?lat=${lat}&lon=${lng}`)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.status === 'SUCCESS') {
+                                document.getElementById('digipinDisplay').innerText = data.digipin;
+                                if (inputDigipin) inputDigipin.value = data.digipin;
+                            }
+                        })
+                        .catch(() => {});
+
+                    if (wardAutoBadge) {
+                        wardAutoBadge.classList.remove('hidden');
+                        wardAutoBadge.classList.add('inline-flex');
+                        wardAutoBadge.innerHTML = `<i data-lucide="check" class="w-3 h-3 mr-1 text-emerald-600 inline"></i> Manually Selected`;
+                    }
+                    if (wardHintMessage) {
+                        wardHintMessage.innerHTML = `<span class="text-slate-700 font-bold">Selected:</span> ${opt.text}`;
+                    }
+                    if (window.lucide) lucide.createIcons();
+                }
+            });
+        }
+
+        // Initial encode
+        updateLocation(defaultLat, defaultLng);
+
+        // Marker drag event
+        marker.on('dragend', function(e) {
+            const pos = e.target.getLatLng();
+            updateLocation(pos.lat, pos.lng);
+        });
+
+        // Map click event
+        map.on('click', function(e) {
+            marker.setLatLng(e.latlng);
+            updateLocation(e.latlng.lat, e.latlng.lng);
+        });
+
+        // Locate Me GPS
+        document.getElementById('btnLocateMe').addEventListener('click', function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(pos) {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    map.setView([lat, lng], 16);
+                    marker.setLatLng([lat, lng]);
+                    updateLocation(lat, lng);
+                }, function(err) {
+                    alert("Could not retrieve current location: " + err.message);
+                });
+            } else {
+                alert("Geolocation is not supported by your browser.");
+            }
+        });
+
+        // Voice Input helper using Web Speech API
+        const btnVoice = document.getElementById('btnVoiceInput');
+        const voiceText = document.getElementById('voiceText');
+        const inputDesc = document.getElementById('inputDesc');
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'ta-IN'; // Default to Tamil or selected language
+
+            btnVoice.addEventListener('click', function() {
+                try {
+                    const voiceLangSelect = document.getElementById('voiceLangSelect');
+                    if (voiceLangSelect) {
+                        recognition.lang = voiceLangSelect.value;
+                    }
+                    recognition.start();
+                    voiceText.innerText = "Listening...";
+                    btnVoice.classList.add("text-emerald-600", "animate-pulse");
+                } catch(e) {
+                    recognition.stop();
+                    voiceText.innerText = "Voice Input";
+                }
+            });
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                inputDesc.value = (inputDesc.value ? inputDesc.value + " " : "") + transcript;
+                voiceText.innerText = "Voice Input";
+                btnVoice.classList.remove("text-emerald-600", "animate-pulse");
+                // Immediately trigger real-time script detection on transcribed speech!
+                runScriptDetection(inputDesc.value);
+            };
+
+            recognition.onerror = function() {
+                voiceText.innerText = "Voice Input";
+                btnVoice.classList.remove("text-emerald-600", "animate-pulse");
+            };
+        } else {
+            btnVoice.style.display = 'none';
+        }
+
+        // Image Preview
+        document.getElementById('inputImage').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const preview = document.getElementById('imagePreview');
+                    preview.classList.remove('hidden');
+                    preview.querySelector('img').src = evt.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 10 Indian Scripts + Transliterated Text Detection Engine
+        const SCRIPT_RANGES = [
+            { name: "Devanagari (Hindi)", lang: "Hindi", start: 0x0900, end: 0x097F, range: "U+0900–U+097F", code: "hi" },
+            { name: "Bengali", lang: "Bengali", start: 0x0980, end: 0x09FF, range: "U+0980–U+09FF", code: "bn" },
+            { name: "Gurmukhi (Punjabi)", lang: "Punjabi", start: 0x0A00, end: 0x0A7F, range: "U+0A00–U+0A7F", code: "pa" },
+            { name: "Gujarati", lang: "Gujarati", start: 0x0A80, end: 0x0AFF, range: "U+0A80–U+0AFF", code: "gu" },
+            { name: "Odia", lang: "Odia", start: 0x0B00, end: 0x0B7F, range: "U+0B00–U+0B7F", code: "or" },
+            { name: "Tamil", lang: "Tamil", start: 0x0B80, end: 0x0BFF, range: "U+0B80–U+0BFF", code: "ta" },
+            { name: "Telugu", lang: "Telugu", start: 0x0C00, end: 0x0C7F, range: "U+0C00–U+0C7F", code: "te" },
+            { name: "Kannada", lang: "Kannada", start: 0x0C80, end: 0x0CFF, range: "U+0C80–U+0CFF", code: "kn" },
+            { name: "Malayalam", lang: "Malayalam", start: 0x0D00, end: 0x0D7F, range: "U+0D00–U+0D7F", code: "ml" },
+            { name: "Sinhala", lang: "Sinhala", start: 0x0D80, end: 0x0DFF, range: "U+0D80–U+0DFF", code: "si" }
+        ];
+
+        const MANGLISH_WORDS = new Set([
+            "veettil", "veed", "veetila", "vellam", "kudivellam", "varunnilla", "varilla", "varunilla",
+            "current", "karannt", "vaidyuthi", "poyi", "poyilla", "illathe", "illa", "illallo",
+            "kuzhi", "kuzhikal", "roddil", "roadil", "valiya", "kooduthal", "mazha", "vellakkettu",
+            "cheythutharuka", "aarum", "nokkunilla", "malayalam", "ivide", "njangal", "njaangal",
+            "theerthu", "chavaru", "malinyam", "sahayam", "sahayikkanam", "aano", "undayi", "undakki",
+            "pettannu", "theruvu", "vilakku", "kathunnilla", "aanu", "undu", "aayirunnu"
+        ]);
+        const MANGLISH_ANCHORS = new Set([
+            "vellam", "varunnilla", "varunilla", "varilla", "kuzhi", "kuzhikal", "njangal", "njaangal",
+            "veettil", "karannt", "vaidyuthi", "malinyam", "chavaru", "vellakkettu", "kathunnilla",
+            "cheythutharuka", "aanu", "undu", "aayirunnu", "theruvu"
+        ]);
+
+        const TANGLISH_WORDS = new Set([
+            "en", "enga", "engal", "veetu", "veetula", "thanni", "thanneer", "varala", "varadhu",
+            "illai", "illa", "romba", "irukku", "kuppai", "vilakku", "salai", "pallam", "kaaran",
+            "mudiyala", "seekiram", "pannunga", "pannungalen", "thevai", "theru", "munsaram",
+            "mincharam", "poiduchu", "poiruchu", "aachu", "aayiduchu", "kudukala", "saakkadai", "eriyala"
+        ]);
+        const TANGLISH_ANCHORS = new Set([
+            "thanni", "thanneer", "varala", "varadhu", "veetula", "veetu", "kuppai", "irukku",
+            "pallam", "salai", "pannunga", "mudiyala", "poiduchu", "poiruchu", "mincharam",
+            "munsaram", "saakkadai", "eriyala"
+        ]);
+
+        const HINGLISH_WORDS = new Set([
+            "mera", "meri", "mere", "ghar", "mein", "cal", "kal", "se", "hai", "nahi", "nahin",
+            "bijli", "pani", "paani", "sadak", "gaddha", "kuppa", "roshni", "batti", "kar", "raha",
+            "rahi", "kripya", "jaldi", "theek", "karo", "bohot", "samay", "din", "adhikari", "kachra", "samasya"
+        ]);
+        const HINGLISH_ANCHORS = new Set([
+            "mera", "meri", "mere", "ghar", "mein", "bijli", "gaddha", "nahin", "nahi",
+            "kachra", "samasya", "batti", "theek", "roshni"
+        ]);
+
+        const TENGLISH_WORDS = new Set([
+            "maaku", "maku", "ma", "illu", "intlo", "neellu", "neeru", "ravatledu", "raavadam",
+            "ledu", "current", "poyindi", "raaledu", "baga", "cheyandi", "road", "guntalu",
+            "chedipoyindi", "deepalu", "velagadam", "dhayachesi"
+        ]);
+        const TENGLISH_ANCHORS = new Set(["neellu", "ravatledu", "raavadam", "intlo", "guntalu", "poyindi", "deepalu", "velagadam"]);
+
+        const KANGLISH_WORDS = new Set([
+            "namma", "nammooru", "maneyalli", "neeru", "bartha", "bartilla", "current", "hogide",
+            "thumba", "kasta", "bega", "maadi", "rastyalli", "gundi", "kandide", "belaku", "deepa", "haalaagide"
+        ]);
+        const KANGLISH_ANCHORS = new Set(["maneyalli", "bartilla", "rastyalli", "hogide", "gundi", "haalaagide"]);
+
+        const scriptLabel = document.getElementById('detectedScriptLabel');
+        const scriptRange = document.getElementById('detectedScriptRange');
+        const headerText = document.getElementById('translationHeaderText');
+        const previewBox = document.getElementById('translatedTextPreview');
+        let detectDebounceTimer = null;
+
+        function runScriptDetection(text) {
+            if (!text || !text.trim()) {
+                scriptLabel.innerText = "Script: Latin (Default)";
+                scriptRange.innerText = "U+0020–U+007F";
+                headerText.innerText = "[AUTOMATED TRANSLATION • Original text preserved • English translation generated for municipal action]";
+                previewBox.innerText = "Type above or use Voice Input to see live script detection and English translation preview...";
+                return;
+            }
+
+            // 1. Check Unicode code points for the 10 Indian scripts
+            const counts = {};
+            for (let s of SCRIPT_RANGES) counts[s.name] = 0;
+
+            for (let i = 0; i < text.length; i++) {
+                const code = text.charCodeAt(i);
+                for (let s of SCRIPT_RANGES) {
+                    if (code >= s.start && code <= s.end) {
+                        counts[s.name]++;
+                        break;
+                    }
+                }
+            }
+
+            let maxScript = null;
+            let maxCount = 0;
+            for (let s of SCRIPT_RANGES) {
+                if (counts[s.name] > maxCount) {
+                    maxCount = counts[s.name];
+                    maxScript = s;
+                }
+            }
+
+            if (maxScript && maxCount > 0) {
+                // Native Indian Unicode Script Detected (e.g. Tamil தமிழ், Malayalam മലയാളം, Hindi हिन्दी)
+                scriptLabel.innerText = `Script: ${maxScript.name}`;
+                scriptRange.innerText = `Code Points: ${maxScript.range}`;
+                headerText.innerText = `[AUTOMATED TRANSLATION • Original text preserved in ${maxScript.lang} (${maxScript.name} ${maxScript.range}) • Translated to English for Municipal Action]`;
+            } else {
+                // 2. Check Latin Transliterated Indian Text (Manglish, Tanglish, Hinglish, Tenglish, Kanglish)
+                const words = (text.toLowerCase().match(/[a-z]+/g) || []);
+                const wordsSet = new Set(words);
+
+                let mScore = 0, tScore = 0, hScore = 0, teScore = 0, knScore = 0;
+                words.forEach(w => {
+                    if (MANGLISH_WORDS.has(w)) mScore++;
+                    if (MANGLISH_ANCHORS.has(w)) mScore += 2;
+
+                    if (TANGLISH_WORDS.has(w)) tScore++;
+                    if (TANGLISH_ANCHORS.has(w)) tScore += 2;
+
+                    if (HINGLISH_WORDS.has(w)) hScore++;
+                    if (HINGLISH_ANCHORS.has(w)) hScore += 2;
+
+                    if (TENGLISH_WORDS.has(w)) teScore++;
+                    if (TENGLISH_ANCHORS.has(w)) teScore += 2;
+
+                    if (KANGLISH_WORDS.has(w)) knScore++;
+                    if (KANGLISH_ANCHORS.has(w)) knScore += 2;
+                });
+
+                const lowerText = text.toLowerCase();
+                if (lowerText.includes("cal se") || lowerText.includes("kal se") || lowerText.includes("ghar mein") || lowerText.includes("mera ghar")) hScore += 3;
+                if (lowerText.includes("thanni varala") || lowerText.includes("veetula thanni") || lowerText.includes("current poiduchu")) tScore += 3;
+                if (lowerText.includes("vellam varunnilla") || lowerText.includes("current poyi") || lowerText.includes("roadil kuzhi") || lowerText.includes("veettil vellam")) mScore += 3;
+                if (lowerText.includes("neellu ravatledu") || lowerText.includes("current poyindi")) teScore += 3;
+                if (lowerText.includes("neeru bartilla") || lowerText.includes("current hogide")) knScore += 3;
+
+                const scores = [
+                    { name: "Malayalam (Manglish)", code: "ml-Latn", score: mScore, sample: "Manglish" },
+                    { name: "Tamil (Tanglish)", code: "ta-Latn", score: tScore, sample: "Tanglish" },
+                    { name: "Hindi (Hinglish)", code: "hi-Latn", score: hScore, sample: "Hinglish" },
+                    { name: "Telugu (Tenglish)", code: "te-Latn", score: teScore, sample: "Tenglish" },
+                    { name: "Kannada (Kanglish)", code: "kn-Latn", score: knScore, sample: "Kanglish" }
+                ];
+
+                scores.sort((a, b) => b.score - a.score);
+                const top = scores[0];
+
+                if (top.score >= 2 || (top.score >= 1 && (
+                    (top.code === 'ml-Latn' && words.some(w => MANGLISH_ANCHORS.has(w))) ||
+                    (top.code === 'ta-Latn' && words.some(w => TANGLISH_ANCHORS.has(w))) ||
+                    (top.code === 'hi-Latn' && words.some(w => HINGLISH_ANCHORS.has(w))) ||
+                    (top.code === 'te-Latn' && words.some(w => TENGLISH_ANCHORS.has(w))) ||
+                    (top.code === 'kn-Latn' && words.some(w => KANGLISH_ANCHORS.has(w)))
+                ))) {
+                    scriptLabel.innerText = `Script: Latin (Transliterated ${top.name})`;
+                    scriptRange.innerText = "Code Points: U+0020–U+007F (Latin)";
+                    headerText.innerText = `[AUTOMATED TRANSLATION • Original text preserved in ${top.name} • Translated to English for Municipal Action]`;
+                } else {
+                    scriptLabel.innerText = "Script: Latin (Standard English)";
+                    scriptRange.innerText = "Code Points: U+0020–U+007F";
+                    headerText.innerText = "[ORIGINAL SUBMISSION • Verbatim English text preserved • Ready for AI Triage & Municipal Routing]";
+                }
+            }
+
+            // Sync with backend API for exact translation preview & auto-title generation
+            clearTimeout(detectDebounceTimer);
+            detectDebounceTimer = setTimeout(() => {
+                fetch(`/api/detect-script/?text=${encodeURIComponent(text)}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.status === 'SUCCESS') {
+                            if (data.is_indian_script) {
+                                scriptLabel.innerText = `Script: ${data.script} (${data.language})`;
+                                scriptRange.innerText = `Code Points: ${data.hex_range}`;
+                                if (data.translation_header) {
+                                    headerText.innerText = data.translation_header;
+                                }
+                            }
+
+                            // Auto-Populate Grievance Title if citizen hasn't typed custom title
+                            const genTitle = data.generated_title || data.translated_title;
+                            if (genTitle && inputTitle && (!userTitleEdited || !inputTitle.value.trim())) {
+                                inputTitle.value = genTitle;
+                                if (titleAutoBadge) {
+                                    titleAutoBadge.classList.remove('hidden');
+                                    titleAutoBadge.classList.add('inline-flex');
+                                }
+                                inputTitle.classList.add('ring-2', 'ring-emerald-400');
+                                setTimeout(() => inputTitle.classList.remove('ring-2', 'ring-emerald-400'), 1200);
+                            }
+
+                            // Render Live English Triage Translation Preview
+                            if (previewBox) {
+                                previewBox.classList.remove('italic');
+                                const dispTitle = genTitle || 'Civic Grievance';
+                                const dispDesc = data.translated_description || text;
+                                previewBox.innerHTML = `
+                                    <div class="space-y-2">
+                                        <div class="flex items-center space-x-2 text-xs font-bold text-indigo-950">
+                                            <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded text-[10px] font-mono font-bold tracking-wide">
+                                                AI TITLE:
+                                            </span>
+                                            <span>${dispTitle}</span>
+                                        </div>
+                                        <div class="text-xs text-slate-800 leading-relaxed bg-white p-2.5 rounded-lg border border-emerald-200 shadow-xs">
+                                            <div class="text-[10px] uppercase font-bold text-emerald-700 mb-1 flex items-center">
+                                                <i data-lucide="languages" class="w-3 h-3 mr-1 text-emerald-600 inline"></i>
+                                                English Translation (Municipal Action):
+                                            </div>
+                                            <p class="font-sans text-xs text-slate-900">${dispDesc}</p>
+                                        </div>
+                                    </div>
+                                `;
+                                if (window.lucide) lucide.createIcons();
+                            }
+                        }
+                    })
+                    .catch(() => {});
+            }, 250);
+        }
+
+        // Reactive Grievance Title Auto-Generation Listeners
+        const inputTitle = document.getElementById('inputTitle');
+        const titleAutoBadge = document.getElementById('titleAutoBadge');
+        const btnAutoGenerateTitle = document.getElementById('btnAutoGenerateTitle');
+        let userTitleEdited = false;
+
+        if (inputTitle) {
+            inputTitle.addEventListener('input', function() {
+                // If user cleared the input, allow auto-generation again
+                userTitleEdited = !!inputTitle.value.trim();
+                if (userTitleEdited && titleAutoBadge) {
+                    titleAutoBadge.classList.add('hidden');
+                    titleAutoBadge.classList.remove('inline-flex');
+                }
+            });
+        }
+
+        if (btnAutoGenerateTitle) {
+            btnAutoGenerateTitle.addEventListener('click', function() {
+                const descText = (inputDesc ? inputDesc.value : '').trim();
+                if (!descText) {
+                    alert('Please enter or dictate a description below first, and the AI will auto-generate the title.');
+                    if (inputDesc) inputDesc.focus();
+                    return;
+                }
+                btnAutoGenerateTitle.disabled = true;
+                btnAutoGenerateTitle.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 mr-1 animate-spin"></i> Generating...`;
+                if (window.lucide) lucide.createIcons();
+
+                fetch(`/api/detect-script/?text=${encodeURIComponent(descText)}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        btnAutoGenerateTitle.disabled = false;
+                        btnAutoGenerateTitle.innerHTML = `<i data-lucide="sparkles" class="w-3.5 h-3.5 mr-1 text-indigo-600"></i> Auto-Title`;
+                        const genTitle = data.generated_title || data.translated_title;
+                        if (genTitle && inputTitle) {
+                            inputTitle.value = genTitle;
+                            userTitleEdited = false;
+                            if (titleAutoBadge) {
+                                titleAutoBadge.classList.remove('hidden');
+                                titleAutoBadge.classList.add('inline-flex');
+                            }
+                            inputTitle.classList.add('ring-2', 'ring-emerald-400');
+                            setTimeout(() => inputTitle.classList.remove('ring-2', 'ring-emerald-400'), 1200);
+                        }
+                        if (window.lucide) lucide.createIcons();
+                    })
+                    .catch(() => {
+                        btnAutoGenerateTitle.disabled = false;
+                        btnAutoGenerateTitle.innerHTML = `<i data-lucide="sparkles" class="w-3.5 h-3.5 mr-1 text-indigo-600"></i> Auto-Title`;
+                        if (window.lucide) lucide.createIcons();
+                    });
+            });
+        }
+
+        if (inputDesc) {
+            inputDesc.addEventListener('input', function(e) {
+                runScriptDetection(e.target.value);
+            });
+            // Initial run if pre-filled
+            if (inputDesc.value) {
+                runScriptDetection(inputDesc.value);
+            }
+        }
+
+        // Aadhaar OTP Verification Logic for Anti-Spam Gate
+        const aadhaarInput = document.getElementById('fileComplaintAadhaar');
+        const otpInput = document.getElementById('fileComplaintOtp');
+        const btnSendOtp = document.getElementById('btnSendAadhaarGrievanceOtp');
+        const btnVerifyOtp = document.getElementById('btnVerifyAadhaarGrievanceOtp');
+        const otpNotice = document.getElementById('aadhaarOtpNotice');
+        const verifiedBadge = document.getElementById('aadhaarVerifiedBadge');
+
+        if (aadhaarInput) {
+            aadhaarInput.addEventListener('input', function(e) {
+                let v = e.target.value.replace(/\D/g, '').substring(0, 12);
+                let formatted = '';
+                for (let i = 0; i < v.length; i++) {
+                    if (i > 0 && i % 4 === 0) formatted += ' ';
+                    formatted += v[i];
+                }
+                e.target.value = formatted;
+            });
+        }
+
+        if (btnSendOtp) {
+            btnSendOtp.addEventListener('click', function() {
+                const aadhaarRaw = (aadhaarInput.value || '').replace(/\D/g, '');
+                if (aadhaarRaw.length !== 12) {
+                    alert('Please enter a valid 12-digit Aadhaar number.');
+                    return;
+                }
+                btnSendOtp.disabled = true;
+                btnSendOtp.innerText = 'Sending...';
+
+                fetch('{% url "api_aadhaar_send_otp" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: new URLSearchParams({
+                        aadhaar_number: aadhaarRaw,
+                        purpose: 'GRIEVANCE'
+                    })
+                })
+                .then(r => r.json())
+                .then(res => {
+                    btnSendOtp.disabled = false;
+                    btnSendOtp.innerText = 'Resend';
+                    if (res.status === 'SUCCESS') {
+                        otpNotice.className = 'text-xs p-2.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 block font-sans font-medium';
+                        otpNotice.innerHTML = `<strong>OTP Dispatched:</strong> ${res.message}. <span class="bg-emerald-200 px-1.5 py-0.5 rounded text-emerald-900 font-mono font-bold">Use test code 123456</span> for instant demo verification.`;
+                        if (otpInput) otpInput.focus();
+                    } else {
+                        otpNotice.className = 'text-xs p-2.5 rounded-lg bg-rose-50 text-rose-800 border border-rose-200 block font-sans';
+                        otpNotice.innerText = res.message || 'Failed to dispatch Aadhaar OTP.';
+                    }
+                })
+                .catch(() => {
+                    btnSendOtp.disabled = false;
+                    btnSendOtp.innerText = 'Send OTP';
+                    alert('Error connecting to UIDAI Aadhaar verification gateway.');
+                });
+            });
+        }
+
+        if (btnVerifyOtp) {
+            btnVerifyOtp.addEventListener('click', function() {
+                const aadhaarRaw = (aadhaarInput.value || '').replace(/\D/g, '');
+                const otp = (otpInput.value || '').trim();
+                if (aadhaarRaw.length !== 12 || otp.length !== 6) {
+                    alert('Please enter your 12-digit Aadhaar and 6-digit OTP code.');
+                    return;
+                }
+                btnVerifyOtp.disabled = true;
+                btnVerifyOtp.innerText = 'Verifying...';
+
+                fetch('{% url "api_aadhaar_verify_otp" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: new URLSearchParams({
+                        aadhaar_number: aadhaarRaw,
+                        otp: otp,
+                        purpose: 'GRIEVANCE'
+                    })
+                })
+                .then(r => r.json())
+                .then(res => {
+                    btnVerifyOtp.disabled = false;
+                    btnVerifyOtp.innerText = 'Verify OTP';
+                    if (res.status === 'SUCCESS') {
+                        otpNotice.className = 'text-xs p-2.5 rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300 block font-sans font-bold';
+                        otpNotice.innerHTML = `✓ Aadhaar KYC Successfully Verified! Last 4 digits: •••• ${res.last4}. Grievance submission authenticated.`;
+                        if (verifiedBadge) verifiedBadge.classList.remove('hidden');
+                        aadhaarInput.readOnly = true;
+                        otpInput.readOnly = true;
+                        btnSendOtp.classList.add('hidden');
+                        btnVerifyOtp.classList.add('hidden');
+                    } else {
+                        otpNotice.className = 'text-xs p-2.5 rounded-lg bg-rose-50 text-rose-800 border border-rose-200 block font-sans';
+                        otpNotice.innerText = res.message || 'Invalid or expired OTP.';
+                    }
+                })
+                .catch(() => {
+                    btnVerifyOtp.disabled = false;
+                    btnVerifyOtp.innerText = 'Verify OTP';
+                    alert('Error verifying OTP with Aadhaar gateway.');
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

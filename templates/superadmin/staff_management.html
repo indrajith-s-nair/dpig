@@ -1,0 +1,543 @@
+{% extends "base.html" %}
+
+{% block title %}Department Staff & Officer Management - {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold text-rose-700 uppercase tracking-widest">State SuperAdmin Control</span>
+                <span class="text-xs bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded">
+                    Staff Authority & Hierarchy Module
+                </span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">Municipal Staff & Policymaker Directory</h1>
+            <p class="text-xs text-slate-500 mt-1">
+                Centrally provision junior to senior management officers, configure authority levels, assign wards/zones, and manage SLA escalation paths.
+            </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+            <!-- Download Template Dropdown / Links -->
+            <div class="relative inline-block text-left">
+                <a href="{% url 'download_officer_template' %}?format=xlsx"
+                   class="inline-flex items-center px-3.5 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition shadow-xs">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4 mr-1.5 text-emerald-600"></i> Template (.xlsx)
+                </a>
+                <a href="{% url 'download_officer_template' %}?format=csv"
+                   class="inline-flex items-center px-2.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition shadow-xs ml-1"
+                   title="Download CSV Template">
+                    .csv
+                </a>
+            </div>
+
+            <!-- Export Active Officer Roster -->
+            <a href="{% url 'export_officer_roster' %}?format=xlsx"
+               class="inline-flex items-center px-3.5 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-300 rounded-xl text-xs font-bold transition shadow-xs"
+               title="Export entire active officer directory to Excel in template format">
+                <i data-lucide="download" class="w-4 h-4 mr-1.5 text-blue-600"></i> Export Roster (.xlsx)
+            </a>
+
+            <!-- Bulk Upload Modal Trigger -->
+            <button type="button" onclick="document.getElementById('modal-bulk-upload').classList.remove('hidden')"
+                class="inline-flex items-center px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-sm">
+                <i data-lucide="upload-cloud" class="w-4 h-4 mr-1.5"></i> Bulk Import
+            </button>
+
+            <!-- Manual Appoint Trigger -->
+            <button type="button" onclick="document.getElementById('modal-add-staff').classList.remove('hidden')"
+                class="inline-flex items-center px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition shadow-sm">
+                <i data-lucide="user-plus" class="w-4 h-4 mr-1.5"></i> Appoint Officer
+            </button>
+        </div>
+    </div>
+
+    {% if bulk_report %}
+    <!-- Detailed Bulk Import Audit Report Panel -->
+    <div class="mb-8 p-5 rounded-2xl border {% if bulk_report.status == 'SUCCESS' %}bg-emerald-50/80 border-emerald-300 text-emerald-950{% elif bulk_report.status == 'PARTIAL' %}bg-amber-50/80 border-amber-300 text-amber-950{% else %}bg-rose-50/80 border-rose-300 text-rose-950{% endif %} shadow-sm">
+        <div class="flex items-center justify-between pb-3 border-b {% if bulk_report.status == 'SUCCESS' %}border-emerald-200{% elif bulk_report.status == 'PARTIAL' %}border-amber-200{% else %}border-rose-200{% endif %}">
+            <div class="flex items-center space-x-2 font-bold text-sm">
+                <i data-lucide="{% if bulk_report.status == 'SUCCESS' %}check-circle{% elif bulk_report.status == 'PARTIAL' %}alert-triangle{% else %}alert-octagon{% endif %}" class="w-5 h-5"></i>
+                <span>Bulk Spreadsheet Import Execution Report &mdash; Status: {{ bulk_report.status }}</span>
+            </div>
+            <div class="flex items-center space-x-3 text-xs font-mono font-bold">
+                <span class="bg-white/80 px-2.5 py-1 rounded shadow-2xs">Total Rows: {{ bulk_report.total_rows }}</span>
+                <span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded shadow-2xs">Created: {{ bulk_report.created_count }}</span>
+                <span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded shadow-2xs">Updated: {{ bulk_report.updated_count }}</span>
+                {% if bulk_report.error_count %}
+                <span class="bg-rose-100 text-rose-800 px-2.5 py-1 rounded shadow-2xs">Errors: {{ bulk_report.error_count }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if bulk_report.errors %}
+        <div class="mt-3">
+            <strong class="text-xs uppercase tracking-wider text-rose-800 block mb-1">Row-Level Errors (Action Required):</strong>
+            <ul class="text-xs space-y-1 font-mono list-disc list-inside bg-white/70 p-3 rounded-xl border border-rose-200">
+                {% for err in bulk_report.errors %}
+                <li class="text-rose-700">{{ err }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if bulk_report.warnings %}
+        <div class="mt-3">
+            <strong class="text-xs uppercase tracking-wider text-amber-800 block mb-1">Notices & Warnings:</strong>
+            <ul class="text-xs space-y-1 font-mono list-disc list-inside bg-white/70 p-3 rounded-xl border border-amber-200">
+                {% for w in bulk_report.warnings %}
+                <li class="text-amber-700">{{ w }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if bulk_report.provisioned_users %}
+        <details class="mt-3 text-xs cursor-pointer">
+            <summary class="font-bold text-slate-700 hover:text-slate-900">View Successfully Provisioned Accounts ({{ bulk_report.provisioned_users|length }})</summary>
+            <div class="mt-2 p-3 bg-white/80 rounded-xl border border-slate-200 font-mono text-[11px] grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {% for u in bulk_report.provisioned_users %}
+                <div class="bg-slate-50 p-1.5 rounded border border-slate-100">{{ u }}</div>
+                {% endfor %}
+            </div>
+        </details>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Hierarchy & Staff Metrics (7 Workflow Levels + Policymakers) -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 mb-8">
+        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-xs text-center">
+            <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Total Staff</div>
+            <div class="text-xl font-black text-slate-900 mt-0.5">{{ counts.total }}</div>
+            <div class="text-[9px] text-slate-500">Active Roster</div>
+        </div>
+        <div class="bg-white p-3 rounded-xl border border-blue-200 shadow-xs text-center">
+            <div class="text-[9px] font-bold text-blue-700 uppercase tracking-wider">DL1: Dept L1</div>
+            <div class="text-xl font-black text-blue-800 mt-0.5">{{ counts.dl1 }}</div>
+            <div class="text-[9px] text-blue-600">Ward AE / Field</div>
+        </div>
+        <div class="bg-white p-3 rounded-xl border border-cyan-200 shadow-xs text-center">
+            <div class="text-[9px] font-bold text-cyan-700 uppercase tracking-wider">DL2: Dept L2</div>
+            <div class="text-xl font-black text-cyan-800 mt-0.5">{{ counts.dl2 }}</div>
+            <div class="text-[9px] text-cyan-600">Asst Exec Engr</div>
+        </div>
+        <div class="bg-white p-3 rounded-xl border border-amber-200 shadow-xs text-center">
+            <div class="text-[9px] font-bold text-amber-700 uppercase tracking-wider">DL3: Dept L3</div>
+            <div class="text-xl font-black text-amber-800 mt-0.5">{{ counts.dl3 }}</div>
+            <div class="text-[9px] text-amber-600">Zonal Officer / EE</div>
+        </div>
+        <div class="bg-white p-3 rounded-xl border border-violet-200 shadow-xs text-center">
+            <div class="text-[9px] font-bold text-violet-700 uppercase tracking-wider">CL1: City L1</div>
+            <div class="text-xl font-black text-violet-800 mt-0.5">{{ counts.cl1 }}</div>
+            <div class="text-[9px] text-violet-600">Joint Comm / SE</div>
+        </div>
+        <div class="bg-white p-3 rounded-xl border border-purple-200 shadow-xs text-center">
+            <div class="text-[9px] font-bold text-purple-700 uppercase tracking-wider">CL2: City L2</div>
+            <div class="text-xl font-black text-purple-800 mt-0.5">{{ counts.cl2 }}</div>
+            <div class="text-[9px] text-purple-600">Deputy Comm</div>
+        </div>
+        <div class="bg-white p-3 rounded-xl border border-rose-200 shadow-xs text-center">
+            <div class="text-[9px] font-bold text-rose-700 uppercase tracking-wider">CL3 / CM Cell</div>
+            <div class="text-xl font-black text-rose-800 mt-0.5">{{ counts.cl3|add:counts.cm_office }}</div>
+            <div class="text-[9px] text-rose-600">Comm & Apex Cell</div>
+        </div>
+        <div class="bg-white p-3 rounded-xl border border-emerald-200 shadow-xs text-center">
+            <div class="text-[9px] font-bold text-emerald-700 uppercase tracking-wider">Policymakers</div>
+            <div class="text-xl font-black text-emerald-800 mt-0.5">{{ counts.policymakers }}</div>
+            <div class="text-[9px] text-emerald-600">Ward & State Reps</div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-6">
+        <form method="GET" class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Hierarchy Level</label>
+                <select name="level" onchange="this.form.submit()" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg bg-white">
+                    <option value="ALL">All Hierarchy Levels</option>
+                    <option value="DL1" {% if level_filter == 'DL1' or level_filter == '1' %}selected{% endif %}>DL1: Department Level 1 (Ward/Junior AE)</option>
+                    <option value="DL2" {% if level_filter == 'DL2' or level_filter == '2' %}selected{% endif %}>DL2: Department Level 2 (Asst Exec Engr)</option>
+                    <option value="DL3" {% if level_filter == 'DL3' or level_filter == '3' %}selected{% endif %}>DL3: Department Level 3 (Zonal Officer / EE)</option>
+                    <option value="CL1" {% if level_filter == 'CL1' or level_filter == '4' %}selected{% endif %}>CL1: City Level 1 (Joint Comm / SE)</option>
+                    <option value="CL2" {% if level_filter == 'CL2' or level_filter == '5' %}selected{% endif %}>CL2: City Level 2 (Deputy Comm)</option>
+                    <option value="CL3" {% if level_filter == 'CL3' or level_filter == '6' %}selected{% endif %}>CL3: City Level 3 (Municipal Commissioner)</option>
+                    <option value="CM_OFFICE" {% if level_filter == 'CM_OFFICE' or level_filter == '7' %}selected{% endif %}>CM Office: Apex Executive Cell</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Department</label>
+                <select name="dept" onchange="this.form.submit()" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg bg-white">
+                    <option value="ALL">All Departments</option>
+                    {% for d in departments %}
+                    <option value="{{ d.code }}" {% if dept_filter == d.code %}selected{% endif %}>{{ d.code }} - {{ d.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Role Type</label>
+                <select name="role" onchange="this.form.submit()" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg bg-white">
+                    <option value="ALL">All Roles</option>
+                    <option value="WARD_OFFICER" {% if role_filter == 'WARD_OFFICER' %}selected{% endif %}>Ward Assistant Engineer (AE)</option>
+                    <option value="FIELD_STAFF" {% if role_filter == 'FIELD_STAFF' %}selected{% endif %}>Field Verification Staff</option>
+                    <option value="ZONAL_OFFICER" {% if role_filter == 'ZONAL_OFFICER' %}selected{% endif %}>Zonal Officer (ZO)</option>
+                    <option value="COMMISSIONER" {% if role_filter == 'COMMISSIONER' %}selected{% endif %}>Municipal Commissioner</option>
+                    <option value="POLICYMAKER" {% if role_filter == 'POLICYMAKER' %}selected{% endif %}>State / Zone Policymaker</option>
+                    <option value="AUDITOR" {% if role_filter == 'AUDITOR' %}selected{% endif %}>Statutory / Compliance Auditor</option>
+                    <option value="SUPERADMIN" {% if role_filter == 'SUPERADMIN' %}selected{% endif %}>State SuperAdmin</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Zone Filter</label>
+                <select name="zone" onchange="this.form.submit()" class="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg bg-white">
+                    <option value="ALL">All Zones (1-15)</option>
+                    {% for z in zones %}
+                    <option value="{{ z.number }}" {% if zone_filter == z.number|stringformat:"s" %}selected{% endif %}>Zone {{ z.number }}: {{ z.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- Staff Directory Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center text-xs font-bold text-slate-600">
+            <span>Displaying {{ staff_list|length }} Authorized Staff Members</span>
+            <span class="text-slate-400 font-normal">SuperAdmin Exclusive Provisioning</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider">
+                    <tr>
+                        <th class="p-3.5">Officer & Username</th>
+                        <th class="p-3.5">Hierarchy Level</th>
+                        <th class="p-3.5">Designation & Role</th>
+                        <th class="p-3.5">Department</th>
+                        <th class="p-3.5">Jurisdiction</th>
+                        <th class="p-3.5">Status</th>
+                        <th class="p-3.5 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for s in staff_list %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-3.5">
+                            <div class="font-bold text-slate-900">{{ s.user.get_full_name|default:s.user.username }}</div>
+                            <div class="font-mono text-[11px] text-slate-400">@{{ s.user.username }} • {{ s.user.email }}</div>
+                        </td>
+                        <td class="p-3.5">
+                            {% if s.workflow_level == 'DL1' or s.hierarchy_level == 1 %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                                DL1: Ward AE
+                            </span>
+                            {% elif s.workflow_level == 'DL2' or s.hierarchy_level == 2 %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-100 text-cyan-800 border border-cyan-200">
+                                DL2: Asst Exec Engr
+                            </span>
+                            {% elif s.workflow_level == 'DL3' or s.hierarchy_level == 3 %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                                DL3: Zonal Officer / EE
+                            </span>
+                            {% elif s.workflow_level == 'CL1' or s.hierarchy_level == 4 %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-violet-100 text-violet-800 border border-violet-200">
+                                CL1: Joint Comm
+                            </span>
+                            {% elif s.workflow_level == 'CL2' or s.hierarchy_level == 5 %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                                CL2: Deputy Comm
+                            </span>
+                            {% elif s.workflow_level == 'CL3' or s.hierarchy_level == 6 %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                                CL3: Commissioner
+                            </span>
+                            {% elif s.workflow_level == 'CM_OFFICE' or s.hierarchy_level == 7 or s.role == 'CM_OFFICE' %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gradient-to-r from-red-600 to-rose-700 text-white shadow-xs">
+                                CM Office (Apex)
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                                {{ s.workflow_level|default:s.hierarchy_level }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="p-3.5">
+                            <div class="font-semibold text-slate-800">{{ s.designation|default:s.get_role_display }}</div>
+                            <div class="text-[10px] font-mono text-slate-500 uppercase">{{ s.role }}</div>
+                        </td>
+                        <td class="p-3.5">
+                            {% if s.department %}
+                            <span class="font-semibold text-slate-800">{{ s.department.code }}</span>
+                            <span class="text-slate-400 block text-[10px]">{{ s.department.name }}</span>
+                            {% else %}
+                            <span class="text-slate-400 italic">All / Cluster Wide</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-3.5">
+                            {% if s.ward %}
+                            <div class="font-semibold text-slate-800">Ward {{ s.ward.number }}</div>
+                            <div class="text-[10px] text-slate-500">Zone {{ s.ward.zone.number }} ({{ s.ward.zone.name }})</div>
+                            {% elif s.zone %}
+                            <div class="font-semibold text-slate-800">Zone {{ s.zone.number }}</div>
+                            <div class="text-[10px] text-slate-500">{{ s.zone.name }}</div>
+                            {% else %}
+                            <span class="text-slate-500 font-semibold">City-Wide Jurisdiction</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-3.5">
+                            {% if s.user.is_active %}
+                            <span class="inline-flex items-center text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse"></span> Active
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                                Deactivated
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="p-3.5 text-right space-x-1">
+                            <!-- Toggle status form -->
+                            <form method="POST" class="inline" onsubmit="return confirm('Change active status for {{ s.user.username }}?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="toggle_status">
+                                <input type="hidden" name="staff_id" value="{{ s.id }}">
+                                <button type="submit" class="px-2 py-1 text-[11px] font-bold rounded border {% if s.user.is_active %}border-slate-200 text-slate-600 hover:bg-slate-100{% else %}border-emerald-200 text-emerald-700 bg-emerald-50{% endif %}">
+                                    {% if s.user.is_active %}Disable{% else %}Enable{% endif %}
+                                </button>
+                            </form>
+
+                            <!-- Reset password form -->
+                            <form method="POST" class="inline" onsubmit="return confirm('Reset password to default Admin@Dpig2026 for {{ s.user.username }}?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="reset_password">
+                                <input type="hidden" name="staff_id" value="{{ s.id }}">
+                                <input type="hidden" name="new_password" value="Admin@Dpig2026">
+                                <button type="submit" class="px-2 py-1 text-[11px] font-bold rounded border border-amber-200 text-amber-700 hover:bg-amber-50" title="Reset to Admin@Dpig2026">
+                                    Reset Pwd
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-10 text-slate-400 text-xs">
+                            No staff records match the current filter criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Appoint New Staff Member -->
+<div id="modal-add-staff" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
+            <div>
+                <h3 class="text-lg font-black text-slate-900">Appoint New Municipal Staff / Policymaker</h3>
+                <p class="text-xs text-slate-500">SuperAdmin centralized employee provisioning</p>
+            </div>
+            <button onclick="document.getElementById('modal-add-staff').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_staff">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Full Name *</label>
+                    <input type="text" name="full_name" required placeholder="e.g. Er. K. Ramesh" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Username *</label>
+                    <input type="text" name="username" required placeholder="e.g. ae.ward110 or zo15" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Official Email</label>
+                    <input type="email" name="email" placeholder="officer@tn.gov.in" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Phone</label>
+                    <input type="tel" name="phone" placeholder="9840100000" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Role *</label>
+                    <select name="role" required class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg bg-white" onchange="autoSetHierarchyLevel(this.value)">
+                        <option value="WARD_OFFICER">Ward Assistant Engineer (DL1/DL2)</option>
+                        <option value="FIELD_STAFF">Field Verification Staff (DL1)</option>
+                        <option value="ZONAL_OFFICER">Zonal Officer (DL3)</option>
+                        <option value="COMMISSIONER">Municipal Commissioner (CL1/CL2/CL3)</option>
+                        <option value="CM_OFFICE">Chief Minister Special Cell (CM Office)</option>
+                        <option value="POLICYMAKER">State / Zone Policymaker</option>
+                        <option value="AUDITOR">Statutory / Compliance Auditor</option>
+                        <option value="SUPERADMIN">State SuperAdmin</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Workflow Level (DL1..CL3 / CM Office) *</label>
+                    <select name="hierarchy_level" id="new-hierarchy-level" required class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                        <option value="1">DL1: Department Level 1 (Ward/Junior AE)</option>
+                        <option value="2">DL2: Department Level 2 (Assistant Executive Engineer)</option>
+                        <option value="3">DL3: Department Level 3 (Executive Engineer / Zonal Head)</option>
+                        <option value="4">CL1: City Level 1 (Citywide Dept Head / Joint Commissioner)</option>
+                        <option value="5">CL2: City Level 2 (Deputy / Additional Commissioner)</option>
+                        <option value="6">CL3: City Level 3 (Municipal Commissioner)</option>
+                        <option value="7">CM_OFFICE: Chief Minister Executive Cell (Apex Level)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Department</label>
+                    <select name="department_id" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                        <option value="">-- All / General Administration --</option>
+                        {% for d in departments %}
+                        <option value="{{ d.id }}">{{ d.code }} - {{ d.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Official Designation</label>
+                    <input type="text" name="designation" placeholder="e.g. Assistant Executive Engineer" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Jurisdiction Zone</label>
+                    <select name="zone_id" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                        <option value="">-- Entire Municipality / Statewide --</option>
+                        {% for z in zones %}
+                        <option value="{{ z.id }}">Zone {{ z.number }}: {{ z.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Jurisdiction Ward</label>
+                    <select name="ward_id" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                        <option value="">-- None / Zone-Wide --</option>
+                        {% for w in wards %}
+                        <option value="{{ w.id }}">Ward {{ w.number }} - {{ w.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Initial Password</label>
+                <input type="password" name="password" value="Admin@Dpig2026" required class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg font-mono">
+                <span class="text-[10px] text-slate-400">Default: Admin@Dpig2026</span>
+            </div>
+
+            <div class="pt-3 flex justify-end space-x-2">
+                <button type="button" onclick="document.getElementById('modal-add-staff').classList.add('hidden')" class="px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg text-xs font-bold shadow-sm">
+                    Appoint Officer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Bulk Upload Officers via Google Sheet Template -->
+<div id="modal-bulk-upload" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
+            <div>
+                <h3 class="text-lg font-black text-slate-900 flex items-center">
+                    <i data-lucide="sheet" class="w-5 h-5 mr-2 text-emerald-600"></i>
+                    Bulk Provision Officers via Google Sheet
+                </h3>
+                <p class="text-xs text-slate-500">Upload CSV or Excel (.xlsx) file matching the Google Sheet template</p>
+            </div>
+            <button onclick="document.getElementById('modal-bulk-upload').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Download Template Hint Banner -->
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-5 text-xs text-emerald-900">
+            <div class="font-bold flex items-center mb-1">
+                <i data-lucide="info" class="w-4 h-4 mr-1 text-emerald-700"></i> Google Sheet Template Structure
+            </div>
+            <p class="text-[11px] text-emerald-800 leading-relaxed mb-2.5">
+                Download the standardized template, open or edit in Google Sheets, fill officer rows across levels <strong>DL1, DL2, DL3, CL1, CL2, CL3, CM_OFFICE</strong>, and upload here.
+            </p>
+            <div class="flex items-center gap-2">
+                <a href="{% url 'download_officer_template' %}?format=xlsx" class="inline-flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px] shadow-xs">
+                    <i data-lucide="download" class="w-3.5 h-3.5 mr-1"></i> Download Template (.xlsx)
+                </a>
+                <a href="{% url 'download_officer_template' %}?format=csv" class="inline-flex items-center px-3 py-1.5 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg font-bold text-[11px]">
+                    <i data-lucide="download" class="w-3.5 h-3.5 mr-1"></i> Download (.csv)
+                </a>
+            </div>
+        </div>
+
+        <form method="POST" action="{% url 'bulk_upload_officers' %}" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="bulk_upload">
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Select Google Sheet / Excel File (.xlsx or .csv) *</label>
+                <input type="file" name="officers_file" accept=".xlsx, .xls, .csv" required
+                       class="w-full text-xs px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                <span class="text-[10px] text-slate-400 mt-1 block">Supports direct downloads from Google Sheets (File &rarr; Download &rarr; Microsoft Excel .xlsx or CSV)</span>
+            </div>
+
+            <!-- Field mapping reference summary -->
+            <div class="border border-slate-200 rounded-xl p-3 bg-slate-50 text-[11px] text-slate-600 space-y-1">
+                <div class="font-bold text-slate-800 text-xs mb-1">Expected Column Headers:</div>
+                <div class="font-mono text-[10px] text-indigo-700 break-all bg-white p-2 rounded border border-slate-200">
+                    Username, Full_Name, Email, Phone, Role, Workflow_Level, Zone_Number, Ward_Number, Department_Code, Designation, Password
+                </div>
+                <div class="text-[10px] text-slate-500 pt-1">
+                    <strong>Workflow Levels:</strong> DL1 (Ward/Junior AE), DL2 (AEE), DL3 (ZO/EE), CL1 (Joint Comm), CL2 (Deputy Comm), CL3 (Commissioner), CM_OFFICE (Apex)
+                </div>
+            </div>
+
+            <div class="pt-3 flex justify-end space-x-2">
+                <button type="button" onclick="document.getElementById('modal-bulk-upload').classList.add('hidden')" class="px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-sm flex items-center">
+                    <i data-lucide="upload-cloud" class="w-4 h-4 mr-1.5"></i> Process & Provision Officers
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function autoSetHierarchyLevel(role) {
+    const sel = document.getElementById('new-hierarchy-level');
+    if (role === 'CM_OFFICE') {
+        sel.value = "7";
+    } else if (role === 'COMMISSIONER') {
+        sel.value = "6";
+    } else if (role === 'ZONAL_OFFICER') {
+        sel.value = "3";
+    } else if (role === 'FIELD_STAFF') {
+        sel.value = "1";
+    } else {
+        sel.value = "1";
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: n8n-service
+  namespace: dpig
+spec:
+  ports:
+    - port: 5678
+      name: http
+  selector:
+    app: n8n
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n
+  namespace: dpig
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: n8n
+  template:
+    metadata:
+      labels:
+        app: n8n
+    spec:
+      containers:
+        - name: n8n
+          image: n8nio/n8n:latest
+          ports:
+            - containerPort: 5678
+          env:
+            - name: N8N_BASIC_AUTH_ACTIVE
+              value: "false"
+            - name: N8N_PORT
+              value: "5678"
+            - name: GENERIC_TIMEZONE
+              value: "Asia/Kolkata"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "150m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"

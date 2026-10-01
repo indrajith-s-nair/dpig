@@ -1,0 +1,9 @@
+Username,Full_Name,Email,Phone,Role,Workflow_Level,Zone_Number,Ward_Number,Department_Code,Designation,Password
+dl1_ae_roads_z5,K. Ramanathan AE,dl1.roads.z5@chennaicorporation.gov.in,9840011101,WARD_OFFICER,DL1,5,52,ROADS,Assistant Engineer - Roads (DL1),Admin@Dpig2026
+dl1_si_swm_z5,S. Lakshmi SI,dl1.swm.z5@chennaicorporation.gov.in,9840011102,FIELD_STAFF,DL1,5,52,SWM,Sanitary Inspector - SWM (DL1),Admin@Dpig2026
+dl2_aee_roads_z5,M. Vignesh AEE,dl2.roads.z5@chennaicorporation.gov.in,9840011103,WARD_OFFICER,DL2,5,,ROADS,Assistant Executive Engineer - Zone 5 (DL2),Admin@Dpig2026
+dl3_ee_zo5,Dr. M. Suresh ZO,zo5@chennaicorp.gov.in,9840011105,ZONAL_OFFICER,DL3,5,,,Zonal Officer - Royapuram (DL3),Admin@Dpig2026
+cl1_se_roads,Tmt. R. Sumathi SE,cl1.roads@chennaicorporation.gov.in,9840011120,COMMISSIONER,CL1,,,ROADS,Superintending Engineer - Citywide Roads (CL1),Admin@Dpig2026
+cl2_dc_works,Thiru. S. Rajendran IAS,dc.works@chennaicorporation.gov.in,9840011125,COMMISSIONER,CL2,,,,Deputy Commissioner - Works (CL2),Admin@Dpig2026
+cl3_commissioner,J. Kumaragurubaran IAS,commissioner@chennaicorporation.gov.in,9840011111,COMMISSIONER,CL3,,,,Principal Secretary / Commissioner (CL3),Admin@Dpig2026
+cm_special_cell,Thiru. K. Annamalai IAS,cmcell@tn.gov.in,9840099999,CM_OFFICE,CM_OFFICE,,,,Special Officer - Chief Minister Executive Cell,Admin@Dpig2026

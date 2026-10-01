@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Security Token Expired - {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-14rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-50">
+    <div class="max-w-xl w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center">
+        
+        <div class="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto mb-5 shadow-inner">
+            <i data-lucide="shield-alert" class="w-8 h-8"></i>
+        </div>
+
+        <div class="inline-flex items-center space-x-1.5 text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 mb-3">
+            <span>HTTP 403 • CSRF TOKEN DESYNCHRONIZED</span>
+        </div>
+
+        <h2 class="text-2xl font-black text-slate-900 tracking-tight">
+            Security Token Out of Sync
+        </h2>
+
+        <p class="mt-2 text-xs text-slate-500">
+            Django's cross-site request forgery (CSRF) protection rejected this submission because the form token in your browser did not match your active session cookie.
+        </p>
+
+        {% if reason %}
+        <div class="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200 text-left">
+            <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Diagnostic Detail:</div>
+            <code class="text-xs text-rose-700 font-mono">{{ reason }}</code>
+        </div>
+        {% endif %}
+
+        <div class="mt-5 text-left p-4 bg-blue-50/60 rounded-xl border border-blue-100 text-xs text-slate-600 space-y-2">
+            <div class="font-bold text-slate-800 flex items-center">
+                <i data-lucide="help-circle" class="w-4 h-4 mr-1.5 text-govblue-600"></i>
+                Common reasons this occurs in local development:
+            </div>
+            <ul class="list-disc list-inside space-y-1 text-[11px] text-slate-600 pl-1">
+                <li>The login tab was left open while the web server or container was restarted.</li>
+                <li>The browser's Back/Forward button was used after switching roles or logging in.</li>
+                <li>An earlier session on <code class="font-mono text-slate-700">localhost:8000</code> left a cached cookie.</li>
+            </ul>
+        </div>
+
+        <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button onclick="window.location.reload();"
+                class="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-xs font-bold text-white bg-govblue-700 hover:bg-govblue-800 shadow-sm transition">
+                <i data-lucide="rotate-cw" class="w-4 h-4 mr-1.5"></i>
+                Reload Page & Get Fresh Token
+            </button>
+            <a href="{% url 'login' %}?next=/admin/"
+                class="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition">
+                <i data-lucide="log-in" class="w-4 h-4 mr-1.5"></i>
+                Go to Unified Login
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

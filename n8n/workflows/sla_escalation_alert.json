@@ -1,0 +1,71 @@
+{
+  "name": "SLA Escalation Notification Dispatch",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sla-escalation",
+        "options": {}
+      },
+      "id": "node-sla-webhook",
+      "name": "SLA Breach Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "alert_payload",
+              "value": "=🚨 URGENT SLA ESCALATION [Tier {{ $json.body.tier }}]\nTicket: {{ $json.body.ticket_number }}\nZone: {{ $json.body.zone }}\nWard: {{ $json.body.ward }}\nDIGIPIN: {{ $json.body.digipin }}\nAction Required: Immediate supervisor intervention required."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-format-alert",
+      "name": "Format Emergency Alert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [320, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"DISPATCHED\",\n  \"escalation_tier\": \"{{ $json.body.tier }}\",\n  \"broadcast_timestamp\": \"{{ $now }}\"\n}",
+        "options": {}
+      },
+      "id": "node-respond-sla",
+      "name": "Acknowledge Escalation",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [540, 300]
+    }
+  ],
+  "connections": {
+    "SLA Breach Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format Emergency Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Emergency Alert": {
+      "main": [
+        [
+          {
+            "node": "Acknowledge Escalation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

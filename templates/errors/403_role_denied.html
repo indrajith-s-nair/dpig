@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Access Restricted - Role-Based Access Control{% endblock %}
+
+{% block content %}
+<div class="min-h-[70vh] flex items-center justify-center px-4 py-12">
+    <div class="max-w-xl w-full bg-white rounded-2xl border border-slate-200 shadow-xl p-8 text-center relative overflow-hidden">
+        <!-- Accent Banner -->
+        <div class="w-16 h-16 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-6 shadow-inner border border-rose-100">
+            <i data-lucide="shield-alert" class="w-8 h-8"></i>
+        </div>
+
+        <span class="text-xs font-bold uppercase tracking-widest text-rose-600 bg-rose-50 border border-rose-200 px-3 py-1 rounded-full">
+            403 • Role Access Denied
+        </span>
+
+        <h1 class="text-2xl sm:text-3xl font-black text-slate-900 mt-4 mb-3 tracking-tight">
+            Restricted Governance Console
+        </h1>
+
+        <p class="text-sm text-slate-600 mb-6 leading-relaxed">
+            You do not have the required role privileges to access <strong class="text-slate-900">{{ console_name }}</strong>.
+            This area is strictly restricted under the platform's <strong>Role-Based Access Control (RBAC)</strong> policy.
+        </p>
+
+        <!-- Access Diagnostics Card -->
+        <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-6 text-left space-y-2.5 text-xs">
+            <div class="flex justify-between items-center">
+                <span class="text-slate-500 font-medium">Your Active Session Role:</span>
+                <span class="font-mono font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-800">
+                    {{ user_role }}
+                </span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-slate-500 font-medium">Authorized Roles for This Console:</span>
+                <span class="font-mono font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800">
+                    {{ required_roles|join:", " }}
+                </span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span class="text-slate-500 font-medium">Requested URL Endpoint:</span>
+                <span class="font-mono text-slate-700 truncate max-w-[240px]">{{ path }}</span>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+            <a href="{% url 'home' %}" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition">
+                <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Return to Home
+            </a>
+            <a href="{% url 'login' %}?next={{ path }}" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-govblue-700 hover:bg-govblue-800 shadow-md transition">
+                <i data-lucide="log-in" class="w-4 h-4 mr-2"></i> Switch to Authorized Account
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

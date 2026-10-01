@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Home - {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="gradient-gov text-white py-16 px-4 sm:px-6 lg:px-8 shadow-inner">
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div class="lg:col-span-7 space-y-6">
+            <div class="inline-flex items-center space-x-2 bg-blue-500/20 border border-blue-400/30 px-3.5 py-1.5 rounded-full text-xs font-semibold text-cyan-200">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-300"></i>
+                <span>Digital Public Infrastructure • DPIG - App</span>
+            </div>
+            
+            <h1 class="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
+                Empowering Citizens, Elevating Civic Governance.
+            </h1>
+            
+            <p class="text-base sm:text-lg text-slate-200 max-w-2xl leading-relaxed">
+                Report municipal issues directly with pinpoint <strong>DIGIPIN</strong> geospatial accuracy, track real-time SLA resolution countdowns, and discover state welfare schemes. Your voice actively guides capital infrastructure planning.
+            </p>
+
+            <div class="flex flex-wrap gap-4 pt-2">
+                <a href="{% url 'file_complaint' %}" class="inline-flex items-center px-6 py-3.5 rounded-xl font-bold text-slate-900 bg-amber-400 hover:bg-amber-300 shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5 text-sm sm:text-base">
+                    <i data-lucide="alert-circle" class="w-5 h-5 mr-2"></i> File a Grievance Now
+                </a>
+                <a href="{% url 'track_complaint_search' %}" class="inline-flex items-center px-6 py-3.5 rounded-xl font-bold text-white bg-slate-800/80 hover:bg-slate-800 border border-slate-700 shadow-md transition text-sm sm:text-base">
+                    <i data-lucide="search" class="w-5 h-5 mr-2"></i> Track Ticket Status
+                </a>
+            </div>
+        </div>
+
+        <!-- Quick Track Ticket Widget -->
+        <div class="lg:col-span-5">
+            <div class="bg-white/10 backdrop-blur-md p-6 sm:p-8 rounded-2xl border border-white/20 shadow-2xl text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold flex items-center">
+                        <i data-lucide="clock" class="w-5 h-5 mr-2 text-cyan-300"></i> Live Ticket Tracker
+                    </h3>
+                    <span class="text-xs bg-cyan-400/20 text-cyan-200 px-2 py-0.5 rounded font-mono">SLA Live</span>
+                </div>
+                <p class="text-xs text-slate-300 mb-4 leading-relaxed">
+                    Have a complaint ticket number? Enter it below to view officer assignment, resolution progress, and cryptographic audit proofs.
+                </p>
+                <form action="{% url 'track_complaint_search' %}" method="GET" class="space-y-3">
+                    <div class="relative">
+                        <input type="text" name="ticket" placeholder="e.g. DPIG-{% now 'Y' %}-{% if cluster %}{{ cluster.code }}{% else %}TICKET{% endif %}-000001" required
+                                class="w-full px-4 py-3 bg-white text-slate-900 placeholder-slate-400 rounded-xl text-sm font-medium focus:ring-2 focus:ring-amber-400 focus:outline-none">
+                        <button type="submit" class="absolute right-2 top-2 bottom-2 px-4 bg-govblue-700 hover:bg-govblue-800 text-white rounded-lg text-xs font-bold transition flex items-center">
+                            Track <i data-lucide="arrow-right" class="w-3.5 h-3.5 ml-1"></i>
+                        </button>
+                    </div>
+                </form>
+                
+                {% if sample_ticket %}
+                <div class="mt-5 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-300">
+                    <span>Track sample active ticket:</span>
+                    <a href="{% url 'track_complaint' sample_ticket %}" class="underline text-amber-300 hover:text-white font-mono font-bold">
+                        {{ sample_ticket }}
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Live Metrics Counter -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-slate-100">
+        <div class="pt-4 md:pt-0">
+            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Grievances</div>
+            <div class="text-3xl font-black text-slate-900">{{ total_complaints }}</div>
+            <div class="text-[11px] text-emerald-600 font-semibold mt-1 flex items-center justify-center">
+                <i data-lucide="check" class="w-3 h-3 mr-0.5"></i> 100% Registered on Chain
+            </div>
+        </div>
+        <div class="pt-4 md:pt-0">
+            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Resolved & Closed</div>
+            <div class="text-3xl font-black text-emerald-600">{{ resolved_complaints }}</div>
+            <div class="text-[11px] text-slate-500 font-semibold mt-1">Resolution Rate: {{ resolution_rate }}%</div>
+        </div>
+        <div class="pt-4 md:pt-0">
+            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">SLA Adherence</div>
+            <div class="text-3xl font-black text-govblue-700">{% if total_complaints > 0 %}{{ sla_adherence }}%{% else %}100%{% endif %}</div>
+            <div class="text-[11px] text-cyan-600 font-semibold mt-1">Monitored 24x7 via Celery</div>
+        </div>
+        <div class="pt-4 md:pt-0">
+            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Jurisdiction</div>
+            <div class="text-3xl font-black text-slate-900">
+                {% if cluster %}{{ zones_count }} / {{ wards_count }}{% else %}0 / 0{% endif %}
+            </div>
+            <div class="text-[11px] text-slate-500 font-semibold mt-1">
+                {% if cluster %}{{ zones_count }} Zones • {{ wards_count }} Wards ({{ cluster.code }}){% else %}No active cluster onboarded{% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Government Broadcasts & Welfare Schemes Preview -->
+<section class="bg-slate-100 py-16 px-4 sm:px-6 lg:px-8 border-y border-slate-200">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+            <div>
+                <span class="text-xs font-bold text-govblue-700 uppercase tracking-widest">Public Information Hub</span>
+                <h2 class="text-2xl font-black text-slate-900 mt-1">Active Alerts & Welfare Schemes</h2>
+            </div>
+            <a href="{% url 'citizen_hub' %}" class="inline-flex items-center text-sm font-bold text-govblue-700 hover:text-govblue-800">
+                View All Announcements <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {% for b in broadcasts %}
+            <div class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded {% if b.priority == 'EMERGENCY' %}bg-rose-100 text-rose-800{% elif b.priority == 'HIGH' %}bg-amber-100 text-amber-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                            {{ b.get_broadcast_type_display }}
+                        </span>
+                        <span class="text-[11px] text-slate-400">{{ b.created_at|date:"d M Y" }}</span>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-base mb-2 line-clamp-2">{{ b.title }}</h4>
+                    <p class="text-xs text-slate-600 line-clamp-3 leading-relaxed mb-4">{{ b.content }}</p>
+                </div>
+                {% if b.scheme_url %}
+                <a href="{{ b.scheme_url }}" target="_blank" rel="noopener" class="text-xs font-bold text-govblue-700 hover:text-govblue-800 flex items-center pt-2 border-t border-slate-100">
+                    Apply / Official Link <i data-lucide="external-link" class="w-3.5 h-3.5 ml-1"></i>
+                </a>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="col-span-3 text-center py-8 text-sm text-slate-500">
+                No active broadcasts at this moment.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+{% if CAN_ACCESS_POLICYMAKER and capital_projects %}
+<!-- Capital Project Signals Preview (Strictly Scoped to Respective Policymaker) -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold text-emerald-700 uppercase tracking-widest">Feedback to Policy</span>
+                {% if USER_PROFILE.ward %}
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-200">
+                    Ward {{ USER_PROFILE.ward.number }} Scoped
+                </span>
+                {% elif USER_PROFILE.zone %}
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-200">
+                    Zone {{ USER_PROFILE.zone.number }} Scoped
+                </span>
+                {% endif %}
+            </div>
+            <h2 class="text-2xl font-black text-slate-900 mt-1">AI-Identified Priority Capital Projects</h2>
+        </div>
+        <a href="{% url 'policymaker_dashboard' %}" class="inline-flex items-center text-sm font-bold text-emerald-700 hover:text-emerald-800">
+            Open Policymaker Console <i data-lucide="arrow-right" class="w-4 h-4 ml-1"></i>
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for cp in capital_projects %}
+        <div class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-bold text-slate-500">{{ cp.sector }}</span>
+                    <span class="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                        Priority: {{ cp.priority_score }}/100
+                    </span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-base mb-2">{{ cp.title }}</h4>
+                <p class="text-xs text-slate-600 mb-3 leading-relaxed">{{ cp.problem_statement|truncatewords:25 }}</p>
+                {% if cp.affected_wards %}
+                <div class="text-[11px] text-slate-500 mb-2">
+                    <span class="font-semibold text-slate-700">Affected Wards:</span> {{ cp.affected_wards|join:", " }}
+                </div>
+                {% endif %}
+            </div>
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>Budget: <strong class="text-slate-900">₹{{ cp.estimated_budget_inr|floatformat:0 }}</strong></span>
+                <span class="font-medium text-emerald-600">{{ cp.get_status_display }}</span>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-2 text-center py-8 text-sm text-slate-500">
+            No capital project recommendations found for your assigned jurisdiction.
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+{% endblock %}

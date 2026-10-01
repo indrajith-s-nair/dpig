@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dpig
+  labels:
+    app.kubernetes.io/name: dpig
+    app.kubernetes.io/part-of: digital-public-infrastructure

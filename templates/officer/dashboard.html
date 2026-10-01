@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Officer Console - {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <!-- Header -->
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold text-indigo-700 uppercase tracking-widest">Government Field Operations</span>
+                <span class="text-xs font-bold px-2 py-0.5 rounded {% if officer_level == 3 %}bg-purple-100 text-purple-800 border border-purple-200{% elif officer_level == 2 %}bg-amber-100 text-amber-800 border border-amber-200{% else %}bg-indigo-100 text-indigo-800 border border-indigo-200{% endif %}">
+                    {{ officer_level_label }}
+                </span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">Grievance Triage & Resolution Console</h1>
+            <p class="text-xs text-slate-500 mt-1">
+                Authority Scope: <strong>{% if officer_level == 1 and USER_PROFILE.ward %}Ward {{ USER_PROFILE.ward.number }} ({{ USER_PROFILE.ward.name }}){% elif officer_level == 2 and USER_PROFILE.zone %}Zone {{ USER_PROFILE.zone.number }} ({{ USER_PROFILE.zone.name }}){% elif officer_level == 3 and USER_PROFILE.zone %}Zone {{ USER_PROFILE.zone.number }} ({{ USER_PROFILE.zone.name }}){% else %}Cluster-Wide Oversight{% endif %}</strong> • Department: <strong>{{ USER_PROFILE.department.name|default:"All Services" }}</strong>
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="text-left sm:text-right bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl">
+                <span class="text-xs text-slate-500 font-medium">
+                    Active Officer: <strong class="text-slate-800">{{ request.user.get_full_name|default:request.user.username }}</strong>
+                    <span class="text-slate-400 font-mono text-[11px] block">{{ officer_level_label }}</span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metrics Filter Pills -->
+    <div class="grid grid-cols-2 sm:grid-cols-6 gap-2.5 mb-6">
+        <a href="?status=ALL&zone={{ zone_filter }}&dept={{ dept_filter }}" class="p-3.5 rounded-xl border text-center transition {% if status_filter == 'ALL' and queue_filter != 'escalated_to_me' %}bg-govblue-700 text-white border-govblue-700 shadow-md{% else %}bg-white border-slate-200 text-slate-700 hover:border-slate-300{% endif %}">
+            <div class="text-[10px] font-bold uppercase tracking-wider opacity-80">All In Scope</div>
+            <div class="text-xl font-black mt-0.5">{{ counts.all }}</div>
+        </a>
+        <a href="?status=ASSIGNED&zone={{ zone_filter }}&dept={{ dept_filter }}" class="p-3.5 rounded-xl border text-center transition {% if status_filter == 'ASSIGNED' %}bg-blue-600 text-white border-blue-600 shadow-md{% else %}bg-white border-slate-200 text-slate-700 hover:border-slate-300{% endif %}">
+            <div class="text-[10px] font-bold uppercase tracking-wider opacity-80">Assigned</div>
+            <div class="text-xl font-black mt-0.5">{{ counts.assigned }}</div>
+        </a>
+        <a href="?status=FIELD_VERIFICATION&zone={{ zone_filter }}&dept={{ dept_filter }}" class="p-3.5 rounded-xl border text-center transition {% if status_filter == 'FIELD_VERIFICATION' %}bg-amber-600 text-white border-amber-600 shadow-md{% else %}bg-white border-slate-200 text-slate-700 hover:border-slate-300{% endif %}">
+            <div class="text-[10px] font-bold uppercase tracking-wider opacity-80">In Field</div>
+            <div class="text-xl font-black mt-0.5">{{ counts.in_progress }}</div>
+        </a>
+        <a href="?queue=escalated_to_me&zone={{ zone_filter }}&dept={{ dept_filter }}" class="p-3.5 rounded-xl border text-center transition {% if queue_filter == 'escalated_to_me' %}bg-purple-700 text-white border-purple-700 shadow-md{% else %}bg-white border-purple-200 text-purple-800 hover:bg-purple-50{% endif %}">
+            <div class="text-[10px] font-bold uppercase tracking-wider opacity-80">+1 Escalations</div>
+            <div class="text-xl font-black mt-0.5">{{ counts.escalated_to_me }}</div>
+        </a>
+        <a href="?status=ESCALATED&zone={{ zone_filter }}&dept={{ dept_filter }}" class="p-3.5 rounded-xl border text-center transition {% if status_filter == 'ESCALATED' and queue_filter != 'escalated_to_me' %}bg-rose-600 text-white border-rose-600 shadow-md{% else %}bg-white border-slate-200 text-slate-700 hover:border-slate-300{% endif %}">
+            <div class="text-[10px] font-bold uppercase tracking-wider opacity-80">SLA Breached</div>
+            <div class="text-xl font-black mt-0.5">{{ counts.escalated }}</div>
+        </a>
+        <a href="?status=RESOLVED&zone={{ zone_filter }}&dept={{ dept_filter }}" class="p-3.5 rounded-xl border text-center transition {% if status_filter == 'RESOLVED' %}bg-emerald-600 text-white border-emerald-600 shadow-md{% else %}bg-white border-slate-200 text-slate-700 hover:border-slate-300{% endif %}">
+            <div class="text-[10px] font-bold uppercase tracking-wider opacity-80">Resolved</div>
+            <div class="text-xl font-black mt-0.5">{{ counts.resolved }}</div>
+        </a>
+    </div>
+
+    <!-- Grievance Queue Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="text-xs font-bold text-slate-600">
+                Displaying {{ complaints|length }} Active Grievance(s)
+            </div>
+            
+            {% if is_corp_or_state_officer %}
+            <!-- Zone / Dept / Level Filter: Corporation & State Level Officers Only -->
+            <form method="GET" class="flex flex-wrap items-center gap-2">
+                <input type="hidden" name="status" value="{{ status_filter }}">
+                <input type="hidden" name="queue" value="{{ queue_filter }}">
+                <select name="zone" onchange="this.form.submit()" class="text-xs px-3 py-1.5 border border-slate-300 rounded-lg bg-white font-semibold">
+                    <option value="ALL" {% if zone_filter == 'ALL' %}selected{% endif %}>All Zones (1-15)</option>
+                    {% for z in zones %}
+                    <option value="{{ z.number }}" {% if zone_filter == z.number|stringformat:"s" %}selected{% endif %}>
+                        Zone {{ z.number }}: {{ z.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <select name="dept" onchange="this.form.submit()" class="text-xs px-3 py-1.5 border border-slate-300 rounded-lg bg-white font-semibold">
+                    <option value="ALL">All Departments</option>
+                    {% for d in departments %}
+                    <option value="{{ d.code }}" {% if dept_filter == d.code %}selected{% endif %}>
+                        {{ d.code }} - {{ d.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <select name="level" onchange="this.form.submit()" class="text-xs px-3 py-1.5 border border-slate-300 rounded-lg bg-white font-semibold">
+                    <option value="ALL">All Workflow Levels</option>
+                    {% for lvl in workflow_levels %}
+                    <option value="{{ lvl }}" {% if level_filter == lvl %}selected{% endif %}>{{ lvl }} Stage</option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% else %}
+            <!-- Local Jurisdiction Scope (Locked to Assigned Jurisdiction) -->
+            <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold px-3 py-1.5 bg-white text-slate-700 rounded-lg border border-slate-200 flex items-center shadow-xs">
+                    <i data-lucide="map-pin" class="w-3.5 h-3.5 mr-1.5 text-govblue-600"></i>
+                    {% if USER_PROFILE.zone %}
+                        Zone {{ USER_PROFILE.zone.number }}: {{ USER_PROFILE.zone.name }}
+                        {% if USER_PROFILE.ward %} • Ward {{ USER_PROFILE.ward.number }}{% endif %}
+                    {% else %}
+                        Direct Assignment Queue
+                    {% endif %}
+                </span>
+                {% if USER_PROFILE.department %}
+                <span class="text-xs font-bold px-3 py-1.5 bg-white text-slate-700 rounded-lg border border-slate-200 flex items-center shadow-xs">
+                    <i data-lucide="briefcase" class="w-3.5 h-3.5 mr-1.5 text-govblue-600"></i>
+                    {{ USER_PROFILE.department.name }}
+                </span>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider">
+                    <tr>
+                        <th class="p-4">Ticket</th>
+                        <th class="p-4">Grievance & Category</th>
+                        <th class="p-4">Zone / Ward / DIGIPIN</th>
+                        <th class="p-4">Workflow Level</th>
+                        <th class="p-4">Severity</th>
+                        <th class="p-4">Status</th>
+                        <th class="p-4">SLA Clock</th>
+                        <th class="p-4 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for c in complaints %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="p-4 font-mono font-bold text-govblue-800">
+                            {{ c.ticket_number }}
+                        </td>
+                        <td class="p-4">
+                            <div class="font-bold text-slate-900 text-sm mb-0.5">{{ c.title }}</div>
+                            <div class="text-[11px] text-slate-500">
+                                {{ c.department.name|default:"Unclassified" }} • {{ c.category.name|default:"General" }}
+                                {% if c.current_assignee %}
+                                • <span class="text-slate-700 font-semibold">Assignee: {{ c.current_assignee.get_full_name|default:c.current_assignee.username }}</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="p-4">
+                            <div class="font-semibold text-slate-800">Zone {{ c.zone.number }} • Ward {{ c.ward.number }}</div>
+                            <div class="font-mono text-[10px] text-slate-500">{{ c.digipin }}</div>
+                        </td>
+                        <td class="p-4">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase {% if c.current_level == 'CM_OFFICE' %}bg-rose-100 text-rose-800 border border-rose-300{% elif 'CL' in c.current_level %}bg-purple-100 text-purple-800 border border-purple-200{% else %}bg-blue-100 text-govblue-800 border border-blue-200{% endif %}">
+                                {{ c.current_level }}
+                            </span>
+                            <div class="text-[9px] text-slate-500 mt-0.5 font-semibold">Tier {{ c.escalated_to_level }}/7</div>
+                        </td>
+                        <td class="p-4">
+                            <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded {% if c.severity == 'CRITICAL' %}bg-rose-100 text-rose-800{% elif c.severity == 'HIGH' %}bg-amber-100 text-amber-800{% else %}bg-slate-100 text-slate-700{% endif %}">
+                                {{ c.severity }}
+                            </span>
+                        </td>
+                        <td class="p-4">
+                            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded {% if c.status in 'RESOLVED,CITIZEN_CONFIRMED' %}bg-emerald-100 text-emerald-800{% elif c.status == 'ESCALATED' %}bg-rose-100 text-rose-800 animate-pulse{% elif c.status == 'FIELD_VERIFICATION' %}bg-amber-100 text-amber-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                                {{ c.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="p-4">
+                            {% if c.status in 'RESOLVED,CITIZEN_CONFIRMED' %}
+                            <span class="text-emerald-600 font-bold">Resolved</span>
+                            {% elif c.is_overdue %}
+                            <span class="text-rose-600 font-bold flex items-center">
+                                <i data-lucide="alert-circle" class="w-3.5 h-3.5 mr-1"></i> Breached (Tier {{ c.sla_escalation_tier }})
+                            </span>
+                            {% else %}
+                            <span class="text-amber-600 font-mono font-bold">{{ c.remaining_sla_seconds }}s left</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-right">
+                            <a href="{% url 'officer_complaint_detail' c.id %}" class="inline-flex items-center px-3 py-1.5 bg-govblue-50 hover:bg-govblue-100 text-govblue-700 rounded-lg font-bold text-xs transition">
+                                Inspect & Action <i data-lucide="chevron-right" class="w-3.5 h-3.5 ml-1"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-12 text-slate-400 text-xs">
+                            No grievances match the selected filter criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

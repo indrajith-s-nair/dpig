@@ -1,0 +1,16 @@
+staff_id,full_name,email,phone,role,assigned_zone,assigned_ward,assigned_department,designation
+STAFF-001,J. Kumaragurubaran IAS,commissioner@chennaicorp.gov.in,9840011111,COMMISSIONER,0,0,,Principal Secretary / Commissioner
+STAFF-002,Dr. K. Senthil,zo1@chennaicorp.gov.in,9840011101,ZONAL_OFFICER,1,0,,Zonal Officer - Thiruvottiyur
+STAFF-003,Thiru. R. Murugan,zo2@chennaicorp.gov.in,9840011102,ZONAL_OFFICER,2,0,,Zonal Officer - Manali
+STAFF-004,Tmt. S. Gomathi,zo3@chennaicorp.gov.in,9840011103,ZONAL_OFFICER,3,0,,Zonal Officer - Madhavaram
+STAFF-005,Thiru. P. Arumugam,zo4@chennaicorp.gov.in,9840011104,ZONAL_OFFICER,4,0,,Zonal Officer - Tondiarpet
+STAFF-006,Dr. M. Suresh,zo5@chennaicorp.gov.in,9840011105,ZONAL_OFFICER,5,0,,Zonal Officer - Royapuram
+STAFF-007,Thiru. G. Jayaraman,zo6@chennaicorp.gov.in,9840011106,ZONAL_OFFICER,6,0,,Zonal Officer - Thiru Vi Ka Nagar
+STAFF-008,Tmt. A. Revathi,zo7@chennaicorp.gov.in,9840011107,ZONAL_OFFICER,7,0,,Zonal Officer - Ambattur
+STAFF-009,Thiru. N. Balachandar,zo8@chennaicorp.gov.in,9840011108,ZONAL_OFFICER,8,0,,Zonal Officer - Anna Nagar
+STAFF-010,Dr. V. Kavitha,zo9@chennaicorp.gov.in,9840011109,ZONAL_OFFICER,9,0,,Zonal Officer - Teynampet
+STAFF-011,Thiru. S. Natarajan,zo10@chennaicorp.gov.in,9840011110,ZONAL_OFFICER,10,0,,Zonal Officer - Kodambakkam
+STAFF-012,K. Anbarasan AE,ae.ward108@chennaicorp.gov.in,9840022108,WARD_OFFICER,8,108,ROADS,Assistant Engineer - Ward 108
+STAFF-013,M. Vignesh AE,ae.ward142@chennaicorp.gov.in,9840022142,WARD_OFFICER,10,142,SWD,Assistant Engineer - Ward 142
+STAFF-014,S. Lakshmi SI,si.ward52@chennaicorp.gov.in,9840022052,FIELD_STAFF,5,52,SWM,Sanitary Inspector - Ward 52
+STAFF-015,State Policy Analyst,policy.analyst@tn.gov.in,9840033001,POLICYMAKER,0,0,,Lead Urban Governance Analyst

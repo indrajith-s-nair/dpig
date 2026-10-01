@@ -1,0 +1,16 @@
+zone_number,zone_name,hq_address,hq_lat,hq_lng,zonal_officer_name,zonal_officer_email,zonal_officer_phone
+1,Thiruvottiyur,"High Court Rd, Thiruvottiyur",13.16,80.3,Dr. K. Senthil,zo1@chennaicorp.gov.in,044-25732101
+2,Manali,"Market Road, Manali",13.17,80.26,Thiru. R. Murugan,zo2@chennaicorp.gov.in,044-25941072
+3,Madhavaram,"Redhills Rd, Madhavaram",13.148,80.231,Tmt. S. Gomathi,zo3@chennaicorp.gov.in,044-25530172
+4,Tondiarpet,"G.A. Road, Tondiarpet",13.125,80.285,Thiru. P. Arumugam,zo4@chennaicorp.gov.in,044-25912345
+5,Royapuram,"Basin Bridge Rd, Royapuram",13.109,80.294,Dr. M. Suresh,zo5@chennaicorp.gov.in,044-25952134
+6,Thiru Vi Ka Nagar,"Strahans Road, Pattalam",13.108,80.245,Thiru. G. Jayaraman,zo6@chennaicorp.gov.in,044-26620194
+7,Ambattur,"CTH Road, Ambattur",13.114,80.154,Tmt. A. Revathi,zo7@chennaicorp.gov.in,044-26581234
+8,Anna Nagar,"2nd Avenue, Anna Nagar",13.085,80.21,Thiru. N. Balachandar,zo8@chennaicorp.gov.in,044-26151234
+9,Teynampet,"Eldams Road, Teynampet",13.04,80.25,Dr. V. Kavitha,zo9@chennaicorp.gov.in,044-24341234
+10,Kodambakkam,"Arcot Road, Kodambakkam",13.052,80.225,Thiru. S. Natarajan,zo10@chennaicorp.gov.in,044-24801234
+11,Valasaravakkam,"Arcot Road, Valasaravakkam",13.04,80.17,Tmt. P. Jayashree,zo11@chennaicorp.gov.in,044-24861234
+12,Alandur,"GST Road, Alandur",13.003,80.2,Thiru. K. Rajendran,zo12@chennaicorp.gov.in,044-22341234
+13,Adyar,"L.B. Road, Adyar",13.006,80.257,Dr. R. Anitha,zo13@chennaicorp.gov.in,044-24421234
+14,Perungudi,"OMR, Perungudi",12.965,80.24,Thiru. T. Dinesh,zo14@chennaicorp.gov.in,044-24961234
+15,Sholinganallur,"ECR, Sholinganallur",12.899,80.227,Tmt. M. Geetha,zo15@chennaicorp.gov.in,044-24501234

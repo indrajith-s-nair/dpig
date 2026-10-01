@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Citizen Aadhaar Sign In - {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-12rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-50">
+    <div class="max-w-md w-full space-y-6">
+        
+        <!-- Header / Emblem -->
+        <div class="text-center">
+            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-700 text-white text-2xl shadow-lg mb-3">
+                🛡️
+            </div>
+            <div class="inline-flex items-center space-x-2 text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 mb-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>UIDAI AADHAAR SECURE LOGIN</span>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                Citizen Portal Authentication
+            </h2>
+            <p class="mt-1 text-xs text-slate-500">
+                Sign in with your 12-digit Aadhaar to access personal grievance history and track civic progress.
+            </p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+            
+            <!-- Auth Mode Switch Tabs -->
+            <div class="flex border-b border-slate-200 mb-6 text-xs font-bold">
+                <button type="button" id="tab-otp-btn" onclick="switchLoginMode('otp')"
+                    class="flex-1 pb-3 text-center border-b-2 border-emerald-600 text-emerald-700 transition">
+                    <i data-lucide="smartphone" class="w-3.5 h-3.5 inline mr-1"></i> Aadhaar OTP
+                </button>
+                <button type="button" id="tab-pwd-btn" onclick="switchLoginMode('password')"
+                    class="flex-1 pb-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-600 transition">
+                    <i data-lucide="lock" class="w-3.5 h-3.5 inline mr-1"></i> Password Login
+                </button>
+            </div>
+
+            <!-- Mode 1: Aadhaar OTP Form -->
+            <form method="POST" id="form-otp-login" action="{% url 'citizen_login' %}" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="login_type" value="otp">
+                {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+                <div>
+                    <label for="aadhaar_number" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        12-Digit Aadhaar Number
+                    </label>
+                    <div class="relative rounded-lg shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <i data-lucide="shield" class="w-4 h-4"></i>
+                        </div>
+                        <input type="text" name="aadhaar_number" id="aadhaar_number" required maxlength="14"
+                            class="block w-full pl-9 pr-24 py-2.5 text-sm font-mono tracking-wider border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"
+                            placeholder="XXXX XXXX XXXX" value="9876 5432 7890">
+                        
+                        <div class="absolute inset-y-1 right-1 flex items-center">
+                            <button type="button" id="btn-login-otp" onclick="requestLoginOtp()"
+                                class="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-xs font-bold transition shadow-sm">
+                                Get OTP
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OTP Status Banner (Hidden until OTP sent) -->
+                <div id="otp-login-alert" class="hidden p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 space-y-1">
+                    <div class="flex items-center font-bold">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 mr-1.5 text-emerald-600"></i>
+                        <span id="otp-login-msg">OTP dispatched to registered mobile.</span>
+                    </div>
+                    <div class="text-[11px] text-slate-600">
+                        UIDAI Simulator Test OTP: <strong id="simulated-login-otp" class="font-mono bg-white px-1.5 py-0.5 rounded border border-emerald-300 text-emerald-900">123456</strong>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="otp_code" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Enter 6-Digit OTP
+                    </label>
+                    <div class="relative rounded-lg shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <i data-lucide="key" class="w-4 h-4"></i>
+                        </div>
+                        <input type="text" name="otp_code" id="otp_code" required maxlength="6"
+                            class="block w-full pl-9 pr-3 py-2.5 text-sm font-mono tracking-widest border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"
+                            placeholder="••••••" value="123456">
+                    </div>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit"
+                        class="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 transition">
+                        <i data-lucide="check-circle" class="w-4 h-4 mr-2"></i>
+                        Verify OTP & Authenticate
+                    </button>
+                </div>
+            </form>
+
+            <!-- Mode 2: Password Login Form (Hidden by default) -->
+            <form method="POST" id="form-pwd-login" action="{% url 'citizen_login' %}" class="space-y-4 hidden">
+                {% csrf_token %}
+                <input type="hidden" name="login_type" value="password">
+                {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+                <div>
+                    <label for="identifier" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Citizen ID or 12-Digit Aadhaar
+                    </label>
+                    <input type="text" name="identifier" id="identifier" required
+                        class="block w-full px-3 py-2.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"
+                        placeholder="e.g. citizen.demo or 987654327890">
+                </div>
+
+                <div>
+                    <label for="password" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                        Password
+                    </label>
+                    <input type="password" name="password" id="password" required
+                        class="block w-full px-3 py-2.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition"
+                        placeholder="••••••••">
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit"
+                        class="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 transition">
+                        <i data-lucide="log-in" class="w-4 h-4 mr-2"></i>
+                        Sign In with Password
+                    </button>
+                </div>
+            </form>
+
+            <!-- Citizen Recovery & Sign Up Links -->
+            <div class="mt-6 pt-4 border-t border-slate-100 flex flex-col space-y-2 text-xs text-center text-slate-600">
+                <div>
+                    New to DPIG? <a href="{% url 'citizen_register' %}{% if next %}?next={{ next|urlencode }}{% endif %}" class="font-bold text-emerald-700 hover:underline">Register with Aadhaar (1 min)</a>
+                </div>
+                <div>
+                    <a href="{% url 'citizen_forgot_password' %}" class="text-slate-500 hover:text-slate-800 hover:underline">Forgot User ID / Password?</a>
+                </div>
+            </div>
+
+            <!-- Notice for Officers -->
+            <div class="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-500 text-center">
+                <span>Are you a Municipal Officer or Policymaker?</span>
+                <a href="{% url 'login' %}" class="block font-bold text-indigo-700 hover:underline mt-0.5">Switch to Department Staff Sign In &rarr;</a>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+function switchLoginMode(mode) {
+    const formOtp = document.getElementById('form-otp-login');
+    const formPwd = document.getElementById('form-pwd-login');
+    const tabOtpBtn = document.getElementById('tab-otp-btn');
+    const tabPwdBtn = document.getElementById('tab-pwd-btn');
+
+    if (mode === 'otp') {
+        formOtp.classList.remove('hidden');
+        formPwd.classList.add('hidden');
+        tabOtpBtn.classList.add('border-emerald-600', 'text-emerald-700');
+        tabOtpBtn.classList.remove('border-transparent', 'text-slate-400');
+        tabPwdBtn.classList.add('border-transparent', 'text-slate-400');
+        tabPwdBtn.classList.remove('border-emerald-600', 'text-emerald-700');
+    } else {
+        formOtp.classList.add('hidden');
+        formPwd.classList.remove('hidden');
+        tabPwdBtn.classList.add('border-emerald-600', 'text-emerald-700');
+        tabPwdBtn.classList.remove('border-transparent', 'text-slate-400');
+        tabOtpBtn.classList.add('border-transparent', 'text-slate-400');
+        tabOtpBtn.classList.remove('border-emerald-600', 'text-emerald-700');
+    }
+}
+
+function requestLoginOtp() {
+    const aadhaarInput = document.getElementById('aadhaar_number');
+    const aadhaarVal = aadhaarInput.value.replace(/[\s\-]/g, '');
+    
+    if (aadhaarVal.length !== 12 || !/^[2-9]\d{11}$/.test(aadhaarVal)) {
+        alert("Please enter a valid 12-digit Aadhaar number.");
+        aadhaarInput.focus();
+        return;
+    }
+
+    const btn = document.getElementById('btn-login-otp');
+    btn.disabled = true;
+    btn.innerText = "Sending...";
+
+    fetch("{% url 'api_aadhaar_send_otp' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            aadhaar_number: aadhaarVal,
+            purpose: "LOGIN"
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerText = "Resend";
+        if (data.success) {
+            const box = document.getElementById('otp-login-alert');
+            box.classList.remove('hidden');
+            document.getElementById('otp-login-msg').innerText = data.message;
+            if (data.simulated_otp) {
+                document.getElementById('simulated-login-otp').innerText = data.simulated_otp;
+                document.getElementById('otp_code').value = data.simulated_otp;
+            }
+        } else {
+            alert(data.message || "Failed to send OTP.");
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerText = "Get OTP";
+        console.error(err);
+        alert("Could not reach authentication server.");
+    });
+}
+
+// Auto format Aadhaar input with spaces
+document.getElementById('aadhaar_number').addEventListener('input', function (e) {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 12) value = value.slice(0, 12);
+    let parts = [];
+    for (let i = 0; i < value.length; i += 4) {
+        parts.push(value.substring(i, i + 4));
+    }
+    e.target.value = parts.join(' ');
+});
+</script>
+{% endblock %}

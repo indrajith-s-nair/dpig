@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dpig-config
+  namespace: dpig
+data:
+  DJANGO_DEBUG: "False"
+  ALLOWED_HOSTS: "*"
+  CSRF_TRUSTED_ORIGINS: "https://dpig.gov.in,https://chennaicorporation.gov.in"
+  POSTGRES_HOST: "postgres-service"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "dpig_db"
+  POSTGRES_USER: "dpig_user"
+  REDIS_URL: "redis://redis-service:6379/0"
+  USE_SQLITE: "False"
+  EMAIL_HOST: "smtp.gmail.com"
+  EMAIL_PORT: "587"
+  EMAIL_USE_TLS: "True"
+  DEFAULT_FROM_EMAIL: "Digital Public Infrastructure Portal <indrajith.nair.s@gmail.com>"
+  NOTIFICATION_FALLBACK_EMAIL: "indrajith.nair.s@gmail.com"
+  GEMINI_MODEL: "gemini-3.8-flash"

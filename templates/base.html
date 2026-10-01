@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ APP_NAME }}{% endblock %} | DPIG - App</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        govblue: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        govgreen: {
+                            600: '#16a34a',
+                            700: '#15803d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Leaflet CSS & JS for Interactive Map Support -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- Theme Immediate Initializer (Prevents Flash) -->
+    <script>
+        (function() {
+            var savedTheme = localStorage.getItem('dpig_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+
+    <style>
+        .leaflet-container { z-index: 10; font-family: inherit; }
+        .gradient-gov { background: linear-gradient(135deg, #0f172a 0%, #0369a1 100%); }
+
+        /* ========================================================
+           MULTI-THEME STYLING ENGINE (Light, Dark, Glass, Vibrant)
+           ======================================================== */
+        /* Dark Theme (Command Center) */
+        [data-theme="dark"] {
+            color-scheme: dark;
+        }
+        [data-theme="dark"] body {
+            background-color: #0b0f19 !important;
+            color: #f1f5f9 !important;
+        }
+        [data-theme="dark"] nav.bg-white,
+        [data-theme="dark"] .bg-white {
+            background-color: #111827 !important;
+            border-color: #1f2937 !important;
+            color: #f3f4f6 !important;
+        }
+        [data-theme="dark"] .bg-slate-50,
+        [data-theme="dark"] .bg-slate-100 {
+            background-color: #0b0f19 !important;
+            border-color: #1f2937 !important;
+        }
+        [data-theme="dark"] .text-slate-900,
+        [data-theme="dark"] .text-slate-800 {
+            color: #f9fafb !important;
+        }
+        [data-theme="dark"] .text-slate-700,
+        [data-theme="dark"] .text-slate-600 {
+            color: #cbd5e1 !important;
+        }
+        [data-theme="dark"] .text-slate-500,
+        [data-theme="dark"] .text-slate-400 {
+            color: #94a3b8 !important;
+        }
+        [data-theme="dark"] .border-slate-200,
+        [data-theme="dark"] .border-slate-100 {
+            border-color: #1f2937 !important;
+        }
+        [data-theme="dark"] .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+            border-color: #1f2937 !important;
+        }
+
+        /* Glassmorphism (Modern Civic) */
+        [data-theme="glassmorphism"] body {
+            background: linear-gradient(135deg, #091e3a 0%, #172554 35%, #0369a1 70%, #0c4a6e 100%) fixed !important;
+            color: #0f172a !important;
+        }
+        [data-theme="glassmorphism"] nav.bg-white {
+            background-color: rgba(255, 255, 255, 0.82) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3) !important;
+            box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.1) !important;
+        }
+        [data-theme="glassmorphism"] .bg-white {
+            background-color: rgba(255, 255, 255, 0.88) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.5) !important;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.12) !important;
+        }
+        [data-theme="glassmorphism"] .bg-slate-100,
+        [data-theme="glassmorphism"] .bg-slate-50 {
+            background-color: rgba(255, 255, 255, 0.18) !important;
+            backdrop-filter: blur(8px) !important;
+        }
+
+        /* Vibrant Gradients (Tamil Nadu Futurism) */
+        [data-theme="vibrant"] body {
+            background: linear-gradient(135deg, #022c22 0%, #064e3b 35%, #0c4a6e 70%, #1e1b4b 100%) fixed !important;
+            color: #f8fafc !important;
+        }
+        [data-theme="vibrant"] nav.bg-white {
+            background-color: #064e3b !important;
+            border-bottom: 1px solid #059669 !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 20px rgba(5, 150, 105, 0.25) !important;
+        }
+        [data-theme="vibrant"] nav .text-slate-900,
+        [data-theme="vibrant"] nav .text-slate-600 {
+            color: #ecfdf5 !important;
+        }
+        [data-theme="vibrant"] .bg-white {
+            background-color: #022c22 !important;
+            border: 1px solid #047857 !important;
+            color: #f0fdf4 !important;
+            box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.3) !important;
+        }
+        [data-theme="vibrant"] .text-slate-900,
+        [data-theme="vibrant"] .text-slate-800 {
+            color: #ffffff !important;
+        }
+        [data-theme="vibrant"] .text-slate-700,
+        [data-theme="vibrant"] .text-slate-600 {
+            color: #a7f3d0 !important;
+        }
+        [data-theme="vibrant"] .text-slate-500,
+        [data-theme="vibrant"] .text-slate-400 {
+            color: #6ee7b7 !important;
+        }
+        [data-theme="vibrant"] .border-slate-200,
+        [data-theme="vibrant"] .border-slate-100 {
+            border-color: #047857 !important;
+        }
+        [data-theme="vibrant"] .bg-slate-100,
+        [data-theme="vibrant"] .bg-slate-50 {
+            background-color: #011f18 !important;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen font-sans antialiased transition-colors duration-200">
+
+    <!-- Top Gov Bar -->
+    <header class="bg-slate-900 text-slate-300 text-xs py-1.5 px-4 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
+            <div class="flex items-center space-x-3">
+                <span class="inline-flex items-center text-amber-400 font-semibold tracking-wider">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block mr-1.5 animate-pulse"></span>
+                    DPIG - App
+                </span>
+                <span class="text-slate-500">|</span>
+                <span>Digital Public Infrastructure for Municipal & State Governance</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="flex items-center text-slate-300">
+                    <i data-lucide="phone-call" class="w-3.5 h-3.5 mr-1 text-emerald-400"></i>
+                    24x7 Helpline: <strong class="ml-1 text-white">{% if EMERGENCY_HELPLINE == '1913' or not EMERGENCY_HELPLINE %}1234{% else %}{{ EMERGENCY_HELPLINE }}{% endif %}</strong>
+                </span>
+                <span class="text-slate-500">|</span>
+                <!-- Theme Selector Dropdown (Replaces Role Dropdown) -->
+                <div class="relative group" id="theme-dropdown-container">
+                    <button id="theme-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded text-xs flex items-center space-x-1.5 border border-slate-700 transition">
+                        <i data-lucide="palette" class="w-3.5 h-3.5 text-cyan-400"></i>
+                        <span>Theme: <strong id="theme-active-label" class="capitalize">Light</strong></span>
+                        <i data-lucide="chevron-down" class="w-3 h-3"></i>
+                    </button>
+                    <div class="absolute right-0 mt-1 w-56 bg-white text-slate-800 shadow-xl rounded-xl border border-slate-200 py-1.5 hidden group-hover:block z-50">
+                        <div class="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 flex items-center justify-between">
+                            <span>Select Theme Style</span>
+                            <i data-lucide="sparkles" class="w-3 h-3 text-amber-500"></i>
+                        </div>
+                        <button type="button" onclick="setTheme('light')" class="w-full text-left px-3 py-2 hover:bg-slate-50 text-xs flex items-center justify-between transition">
+                            <span class="flex items-center"><i data-lucide="sun" class="w-3.5 h-3.5 mr-2 text-amber-500"></i> Light (Gov Official)</span>
+                            <span id="check-light" class="theme-check text-govblue-600 font-bold hidden"><i data-lucide="check" class="w-3.5 h-3.5"></i></span>
+                        </button>
+                        <button type="button" onclick="setTheme('dark')" class="w-full text-left px-3 py-2 hover:bg-slate-50 text-xs flex items-center justify-between transition">
+                            <span class="flex items-center"><i data-lucide="moon" class="w-3.5 h-3.5 mr-2 text-indigo-400"></i> Dark (Command Center)</span>
+                            <span id="check-dark" class="theme-check text-govblue-600 font-bold hidden"><i data-lucide="check" class="w-3.5 h-3.5"></i></span>
+                        </button>
+                        <button type="button" onclick="setTheme('glassmorphism')" class="w-full text-left px-3 py-2 hover:bg-slate-50 text-xs flex items-center justify-between transition">
+                            <span class="flex items-center"><i data-lucide="layers" class="w-3.5 h-3.5 mr-2 text-cyan-500"></i> Glassmorphism (Modern Civic)</span>
+                            <span id="check-glassmorphism" class="theme-check text-govblue-600 font-bold hidden"><i data-lucide="check" class="w-3.5 h-3.5"></i></span>
+                        </button>
+                        <button type="button" onclick="setTheme('vibrant')" class="w-full text-left px-3 py-2 hover:bg-slate-50 text-xs flex items-center justify-between transition">
+                            <span class="flex items-center"><i data-lucide="flame" class="w-3.5 h-3.5 mr-2 text-emerald-500"></i> Vibrant Gradients (Futurism)</span>
+                            <span id="check-vibrant" class="theme-check text-govblue-600 font-bold hidden"><i data-lucide="check" class="w-3.5 h-3.5"></i></span>
+                        </button>
+                    </div>
+                </div>
+                <span class="text-slate-500">|</span>
+                {% if request.user.is_authenticated %}
+                <div class="flex items-center space-x-2">
+                    <span class="text-slate-300 font-mono text-xs flex items-center">
+                        <i data-lucide="user" class="w-3.5 h-3.5 mr-1 text-slate-400"></i>
+                        {{ request.user.username }}
+                    </span>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono uppercase {% if USER_ROLE == 'SUPERADMIN' %}bg-rose-500/20 text-rose-300 border border-rose-500/40{% elif USER_ROLE == 'AUDITOR' %}bg-violet-500/20 text-violet-300 border border-violet-500/40{% elif USER_ROLE == 'DEPT_ADMIN' %}bg-cyan-500/20 text-cyan-300 border border-cyan-500/40{% elif USER_ROLE == 'COMMISSIONER' %}bg-purple-500/20 text-purple-300 border border-purple-500/40{% elif USER_ROLE == 'ZONAL_OFFICER' %}bg-amber-500/20 text-amber-300 border border-amber-500/40{% elif USER_ROLE == 'WARD_OFFICER' or USER_ROLE == 'FIELD_STAFF' %}bg-indigo-500/20 text-indigo-300 border border-indigo-500/40{% elif USER_ROLE == 'POLICYMAKER' %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/40{% else %}bg-slate-500/20 text-slate-300 border border-slate-500/40{% endif %}">
+                        {{ USER_PROFILE.hierarchy_label|default:USER_ROLE }}
+                    </span>
+                    {% if CAN_ACCESS_SUPERADMIN %}
+                    <a href="{% url 'superadmin_staff_management' %}" class="text-blue-400 hover:text-blue-300 text-xs flex items-center space-x-1 border border-blue-500/40 bg-blue-500/10 px-1.5 py-0.5 rounded" title="Manage Staff & Officers">
+                        <i data-lucide="users" class="w-3 h-3"></i>
+                        <span>Staff</span>
+                    </a>
+                    <a href="/admin/" class="text-amber-400 hover:text-amber-300 text-xs flex items-center space-x-1 border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 rounded" title="Open Django Admin">
+                        <i data-lucide="shield" class="w-3 h-3"></i>
+                        <span>Admin</span>
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'logout' %}" class="text-rose-400 hover:text-rose-300 text-xs flex items-center space-x-1 ml-1" title="Sign Out">
+                        <i data-lucide="log-out" class="w-3 h-3"></i>
+                        <span>Logout</span>
+                    </a>
+                </div>
+                {% else %}
+                <div class="flex items-center space-x-2">
+                    <a href="{% url 'citizen_login' %}" class="text-emerald-400 hover:text-emerald-300 text-xs font-semibold flex items-center space-x-1 bg-emerald-950/40 px-2 py-1 rounded border border-emerald-700/50">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+                        <span>Citizen Aadhaar Login</span>
+                    </a>
+                    <a href="{% url 'login' %}?next={{ request.path }}" class="text-cyan-400 hover:text-cyan-300 text-xs font-semibold flex items-center space-x-1 bg-slate-800 px-2.5 py-1 rounded border border-slate-700">
+                        <i data-lucide="log-in" class="w-3.5 h-3.5"></i>
+                        <span>Staff Sign In</span>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Navigation -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'home' %}" class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-lg bg-govblue-700 text-white flex items-center justify-center font-black text-xl shadow-md">
+                            🏛️
+                        </div>
+                        <div>
+                            <div class="text-base font-black text-slate-900 tracking-tight leading-none">
+                                {{ APP_NAME }}
+                            </div>
+                            <div class="text-[11px] text-slate-500 font-medium tracking-wide">
+                                {{ ACTIVE_CLUSTER.name|default:"State Governance Platform" }}
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Navigation Links (Strict Role-Based Access Control) -->
+                <div class="hidden md:flex items-center space-x-1">
+                    <!-- Public / Citizen Portal (Visible ONLY to Citizens and Public) -->
+                    {% if SHOW_CITIZEN_MENUS %}
+                    <a href="{% url 'home' %}" class="px-3 py-2 rounded-md text-sm font-semibold {% if request.resolver_match.url_name == 'home' %}text-govblue-700 bg-govblue-50{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
+                        Home
+                    </a>
+                    <a href="{% url 'file_complaint' %}" class="px-3 py-2 rounded-md text-sm font-semibold {% if request.resolver_match.url_name == 'file_complaint' %}text-govblue-700 bg-govblue-50{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
+                        File Grievance
+                    </a>
+                    <a href="{% url 'track_complaint_search' %}" class="px-3 py-2 rounded-md text-sm font-semibold {% if 'track' in request.resolver_match.url_name %}text-govblue-700 bg-govblue-50{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
+                        Track Status
+                    </a>
+                    <a href="{% url 'citizen_hub' %}" class="px-3 py-2 rounded-md text-sm font-semibold {% if request.resolver_match.url_name == 'citizen_hub' %}text-govblue-700 bg-govblue-50{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
+                        Citizen Services
+                    </a>
+                    {% endif %}
+                    
+                    <!-- Government Operations: Officer Console (Visible ONLY to Authorized Officers) -->
+                    {% if CAN_ACCESS_OFFICER %}
+                    <a href="{% url 'officer_dashboard' %}" class="inline-flex items-center px-3 py-2 rounded-md text-sm font-semibold {% if 'officer' in request.resolver_match.url_name %}text-indigo-700 bg-indigo-50{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
+                        <span>Officer Console</span>
+                        <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 ml-1.5">
+                            {% if USER_ROLE == 'WARD_OFFICER' or USER_ROLE == 'FIELD_STAFF' %}L1 Ward Staff
+                            {% elif USER_ROLE == 'ZONAL_OFFICER' %}L2 Zonal Supervisor
+                            {% elif USER_ROLE == 'COMMISSIONER' %}L3 Commissioner
+                            {% else %}Staff{% endif %}
+                        </span>
+                    </a>
+                    {% endif %}
+
+                    <!-- Policymaker Intelligence (Visible ONLY to Policymakers) -->
+                    {% if CAN_ACCESS_POLICYMAKER %}
+                    <a href="{% url 'policymaker_dashboard' %}" class="inline-flex items-center px-3 py-2 rounded-md text-sm font-semibold {% if 'policymaker' in request.resolver_match.url_name %}text-emerald-700 bg-emerald-50{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
+                        <span>Policymaker Intelligence</span>
+                        <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 ml-1.5">
+                            {% if USER_PROFILE.zone %}Zone {{ USER_PROFILE.zone.number }}{% else %}Policy{% endif %}
+                        </span>
+                    </a>
+                    {% endif %}
+
+                    <!-- Statutory Auditor Hub (Visible to Auditors & SuperAdmins) -->
+                    {% if CAN_ACCESS_AUDITOR %}
+                    <a href="{% url 'auditor_dashboard' %}" class="inline-flex items-center px-3 py-2 rounded-md text-sm font-semibold {% if 'auditor' in request.path %}text-violet-700 bg-violet-50 font-bold{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 mr-1 text-violet-600"></i>
+                        <span>Audit & Compliance Hub</span>
+                        <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 ml-1.5">Auditor</span>
+                    </a>
+                    {% endif %}
+
+                    <!-- Department Admin Links -->
+                    {% if CAN_ACCESS_DEPT_ADMIN %}
+                    <a href="{% url 'dept_admin_dashboard' %}" class="inline-flex items-center px-3 py-2 rounded-md text-sm font-semibold {% if 'dept-admin' in request.path and 'staff' not in request.path and 'alert' not in request.path and 'scheme' not in request.path %}text-cyan-700 bg-cyan-50{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
+                        <i data-lucide="building-2" class="w-3.5 h-3.5 mr-1 text-cyan-600"></i>
+                        <span>Dept Console</span>
+                        <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-700 ml-1.5">
+                            {{ USER_PROFILE.department.code|default:"Dept" }}
+                        </span>
+                    </a>
+                    <a href="{% url 'dept_admin_staff' %}" class="inline-flex items-center px-2.5 py-2 rounded-md text-xs font-semibold {% if 'dept-admin/staff' in request.path %}text-blue-700 bg-blue-50 font-bold{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
+                        <i data-lucide="users" class="w-3.5 h-3.5 mr-1 text-blue-600"></i>
+                        <span>Staff</span>
+                    </a>
+                    <a href="{% url 'dept_admin_alerts' %}" class="inline-flex items-center px-2.5 py-2 rounded-md text-xs font-semibold {% if 'dept-admin/alerts' in request.path %}text-rose-700 bg-rose-50 font-bold{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
+                        <i data-lucide="bell" class="w-3.5 h-3.5 mr-1 text-rose-600"></i>
+                        <span>Alerts</span>
+                    </a>
+                    <a href="{% url 'dept_admin_schemes' %}" class="inline-flex items-center px-2.5 py-2 rounded-md text-xs font-semibold {% if 'dept-admin/schemes' in request.path %}text-emerald-700 bg-emerald-50 font-bold{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
+                        <i data-lucide="gift" class="w-3.5 h-3.5 mr-1 text-emerald-600"></i>
+                        <span>Schemes</span>
+                    </a>
+                    {% endif %}
+
+                    <!-- SuperAdmin Only Links -->
+                    {% if CAN_ACCESS_SUPERADMIN %}
+                    <a href="{% url 'superadmin_staff_management' %}" class="inline-flex items-center px-3 py-2 rounded-md text-sm font-semibold {% if 'staff' in request.path and 'dept-admin' not in request.path %}text-blue-700 bg-blue-50{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %} border border-blue-200">
+                        <i data-lucide="users" class="w-3.5 h-3.5 mr-1 text-blue-600"></i>
+                        <span>Staff & Officers</span>
+                        <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 ml-1">Admin</span>
+                    </a>
+
+                    <a href="{% url 'cluster_onboard' %}" class="inline-flex items-center px-3 py-2 rounded-md text-sm font-semibold text-rose-700 hover:bg-rose-50 border border-rose-200">
+                        <span>1-Click Onboard</span>
+                    </a>
+
+                    <a href="{% url 'feature_permission_matrix' %}" class="inline-flex items-center px-3 py-2 rounded-md text-sm font-semibold {% if 'matrix' in request.resolver_match.url_name %}text-purple-700 bg-purple-50{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %} border border-purple-200">
+                        <i data-lucide="sliders" class="w-3.5 h-3.5 mr-1 text-purple-600"></i>
+                        <span>Admin Matrix</span>
+                    </a>
+                    {% endif %}
+                </div>
+
+                <!-- Action Button -->
+                <div class="flex items-center space-x-3">
+                    {% if SHOW_CITIZEN_MENUS %}
+                    <a href="{% url 'file_complaint' %}" class="hidden sm:inline-flex items-center px-4 py-2 border border-transparent text-sm font-bold rounded-lg shadow-sm text-white bg-govblue-700 hover:bg-govblue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-govblue-600 transition">
+                        <i data-lucide="plus-circle" class="w-4 h-4 mr-2"></i> Report Issue
+                    </a>
+                    {% elif CAN_ACCESS_AUDITOR and IS_AUDITOR %}
+                    <a href="{% url 'auditor_dashboard' %}" class="hidden sm:inline-flex items-center px-4 py-2 border border-transparent text-sm font-bold rounded-lg shadow-sm text-white bg-violet-700 hover:bg-violet-800 focus:outline-none transition">
+                        <i data-lucide="shield-check" class="w-4 h-4 mr-2"></i> Audit Console
+                    </a>
+                    {% elif CAN_ACCESS_DEPT_ADMIN %}
+                    <a href="{% url 'dept_admin_dashboard' %}" class="hidden sm:inline-flex items-center px-4 py-2 border border-transparent text-sm font-bold rounded-lg shadow-sm text-white bg-cyan-700 hover:bg-cyan-800 focus:outline-none transition">
+                        <i data-lucide="building-2" class="w-4 h-4 mr-2"></i> Dept Console
+                    </a>
+                    {% elif CAN_ACCESS_OFFICER %}
+                    <a href="{% url 'officer_dashboard' %}" class="hidden sm:inline-flex items-center px-4 py-2 border border-transparent text-sm font-bold rounded-lg shadow-sm text-white bg-indigo-700 hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 transition">
+                        <i data-lucide="clipboard-list" class="w-4 h-4 mr-2"></i> Grievance Queue
+                    </a>
+                    {% elif CAN_ACCESS_POLICYMAKER %}
+                    <a href="{% url 'policymaker_dashboard' %}" class="hidden sm:inline-flex items-center px-4 py-2 border border-transparent text-sm font-bold rounded-lg shadow-sm text-white bg-emerald-700 hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-600 transition">
+                        <i data-lucide="bar-chart-2" class="w-4 h-4 mr-2"></i> Policy Analytics
+                    </a>
+                    {% elif CAN_ACCESS_SUPERADMIN %}
+                    <a href="{% url 'superadmin_staff_management' %}" class="hidden sm:inline-flex items-center px-4 py-2 border border-transparent text-sm font-bold rounded-lg shadow-sm text-white bg-blue-700 hover:bg-blue-800 focus:outline-none transition">
+                        <i data-lucide="user-plus" class="w-4 h-4 mr-2"></i> Manage Staff
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% if messages %}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        {% for message in messages %}
+        <div class="p-4 mb-3 rounded-lg flex items-center justify-between text-sm font-medium {% if message.tags == 'error' %}bg-rose-50 text-rose-800 border border-rose-200{% elif message.tags == 'warning' %}bg-amber-50 text-amber-800 border border-amber-200{% elif message.tags == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
+            <div class="flex items-center space-x-2">
+                {% if message.tags == 'error' %}<i data-lucide="alert-octagon" class="w-5 h-5 text-rose-600"></i>
+                {% elif message.tags == 'warning' %}<i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600"></i>
+                {% elif message.tags == 'success' %}<i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-600"></i>
+                {% else %}<i data-lucide="info" class="w-5 h-5 text-blue-600"></i>{% endif %}
+                <span>{{ message }}</span>
+            </div>
+            <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content Area -->
+    <main class="flex-grow">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 text-sm mt-16 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 text-white font-bold text-lg mb-3">
+                        <span>🏛️</span>
+                        <span>{{ APP_NAME }}</span>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed mb-4">
+                        State-wide digital public infrastructure connecting citizen grievances to immediate municipal action and strategic infrastructure policy insights.
+                    </p>
+                    <div class="text-[11px] text-slate-500">
+                        Deployment Active: <strong>{{ ACTIVE_CLUSTER.name }}</strong> (Tamil Nadu)
+                    </div>
+                </div>
+
+                {% if SHOW_CITIZEN_MENUS %}
+                <div>
+                    <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider mb-3">Citizen Services</h3>
+                    <ul class="space-y-2 text-xs">
+                        <li><a href="{% url 'file_complaint' %}" class="hover:text-white">Register Civic Grievance</a></li>
+                        <li><a href="{% url 'track_complaint_search' %}" class="hover:text-white">Track SLA Countdown</a></li>
+                        <li><a href="{% url 'citizen_hub' %}" class="hover:text-white">Welfare Schemes & Benefits</a></li>
+                        <li><a href="{% url 'citizen_hub' %}" class="hover:text-white">Disaster & Monsoon Alerts</a></li>
+                    </ul>
+                </div>
+                {% else %}
+                <div>
+                    <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider mb-3">Administrative Operations</h3>
+                    <ul class="space-y-2 text-xs">
+                        {% if CAN_ACCESS_OFFICER %}<li><a href="{% url 'officer_dashboard' %}" class="hover:text-white">Officer Grievance Console</a></li>{% endif %}
+                        {% if CAN_ACCESS_POLICYMAKER %}<li><a href="{% url 'policymaker_dashboard' %}" class="hover:text-white">Policymaker Intelligence</a></li>{% endif %}
+                        {% if CAN_ACCESS_AUDITOR %}<li><a href="{% url 'auditor_dashboard' %}" class="hover:text-white">Statutory Audit & Compliance Hub</a></li>{% endif %}
+                        {% if CAN_ACCESS_SUPERADMIN %}<li><a href="{% url 'superadmin_staff_management' %}" class="hover:text-white">Staff Hierarchy Directory</a></li>{% endif %}
+                        <li><a href="{% url 'logout' %}" class="hover:text-white">Sign Out (Official Session)</a></li>
+                    </ul>
+                </div>
+                {% endif %}
+
+                <div>
+                    <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider mb-3">Governance & Standards</h3>
+                    <ul class="space-y-2 text-xs">
+                        <li><span class="text-slate-300 font-semibold">DIGIPIN:</span> IIT Hyderabad / India Post Grid (~3.8m)</li>
+                        <li><span class="text-slate-300 font-semibold">AI Intelligence:</span> Google Gemini 3.8 Flash</li>
+                        <li><span class="text-slate-300 font-semibold">Audit Integrity:</span> SHA-256 Hash Chain Verification</li>
+                        <li><span class="text-slate-300 font-semibold">Interoperability:</span> Open311 & Webhooks (n8n)</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider mb-3">Quick Helpline</h3>
+                    <div class="bg-slate-800 p-3.5 rounded-lg border border-slate-700">
+                        <div class="text-xs text-slate-400">Toll-Free Civic Helpline:</div>
+                        <div class="text-2xl font-black text-amber-400 tracking-tight my-1">{% if EMERGENCY_HELPLINE == '1913' or not EMERGENCY_HELPLINE %}1234{% else %}{{ EMERGENCY_HELPLINE }}{% endif %}</div>
+                        <div class="text-[11px] text-slate-400">Available 24x7 for all 15 Zones & 200 Wards</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800 mt-8 pt-6 flex flex-col sm:flex-row justify-between items-center text-xs text-slate-500">
+                <div>© 2026 DPIG - App • Digital Public Infrastructure Governance. All rights reserved.</div>
+                <div class="mt-2 sm:mt-0 flex space-x-4">
+                    <span>Zero Data Loss Policy</span>
+                    <span>•</span>
+                    <span>Canonical JSON Integrity</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Theme Management Engine
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('dpig_theme', theme);
+            updateThemeUI(theme);
+            window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: theme } }));
+        }
+
+        function updateThemeUI(theme) {
+            const labels = {
+                'light': 'Light',
+                'dark': 'Dark',
+                'glassmorphism': 'Glass',
+                'vibrant': 'Vibrant'
+            };
+            const activeLabel = document.getElementById('theme-active-label');
+            if (activeLabel) {
+                activeLabel.textContent = labels[theme] || theme;
+            }
+            
+            // Update checkmark indicators in the dropdown
+            document.querySelectorAll('.theme-check').forEach(function(el) {
+                el.classList.add('hidden');
+            });
+            const activeCheck = document.getElementById('check-' + theme);
+            if (activeCheck) {
+                activeCheck.classList.remove('hidden');
+            }
+        }
+
+        // Initialize UI indicators with active theme
+        (function() {
+            var currentTheme = localStorage.getItem('dpig_theme') || 'light';
+            updateThemeUI(currentTheme);
+        })();
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

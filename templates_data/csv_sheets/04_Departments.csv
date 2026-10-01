@@ -1,0 +1,9 @@
+dept_code,dept_name,description,head_officer,contact_email,phone,standard_sla_hours
+SWM,Solid Waste Management,"Door-to-door garbage collection, micro-composting, street sweeping, dump yards",Dr. N. Mahesan,swm@chennaicorp.gov.in,044-25381234,24
+SWD,Storm Water Drains,"Rainwater conduits, macro & micro drain maintenance, flood pump operations",Thiru. S. Rajendran,swd@chennaicorp.gov.in,044-25382345,12
+ROADS,"Roads, Bridges & Footpaths","Bituminous road laying, pothole patching, pedestrian pathways, bridges",Thiru. K. Murugesan,roads@chennaicorp.gov.in,044-25383456,48
+LIGHTS,Street Lights & Electrical,"LED street lighting, smart feeder pillars, electrical safety",Tmt. R. Sumathi,lights@chennaicorp.gov.in,044-25384567,24
+HEALTH,Public Health & Vector Control,"Mosquito fogging, disease surveillance, rabies control, birth/death registry",Dr. M. Jagadeesan,health@chennaicorp.gov.in,044-25385678,24
+PARKS,Parks & Playgrounds,"Public park landscaping, gym equipment maintenance, tree pruning",Thiru. V. Shanmugam,parks@chennaicorp.gov.in,044-25386789,72
+REVENUE,Revenue & Assessments,"Property tax assessment, trade license, professional tax collection",Tmt. C. Jayanthi,revenue@chennaicorp.gov.in,044-25387890,96
+WATER,Water Supply & Sewage Liaison,Coordination with CMWSSB for drinking water contamination & sewage overflows,Thiru. P. Ramesh,water@chennaicorp.gov.in,044-25388901,24

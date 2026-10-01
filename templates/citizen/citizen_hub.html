@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Citizen Services & Benefits Hub - {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div class="mb-8">
+        <span class="text-xs font-bold text-govblue-700 uppercase tracking-widest">Public Information & Welfare</span>
+        <h1 class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">Citizen Services & Information Hub</h1>
+        <p class="text-sm text-slate-600 mt-1">
+            Access vital emergency alerts, state welfare schemes, and municipal guidance published by local, state, and central governments.
+        </p>
+    </div>
+
+    <!-- Emergency Alerts Banner -->
+    {% for alert in alerts %}
+    <div class="bg-rose-50 border-l-4 border-rose-600 p-5 rounded-r-xl mb-6 shadow-sm flex flex-col sm:flex-row items-start justify-between gap-3">
+        <div class="flex items-start space-x-3">
+            <i data-lucide="alert-triangle" class="w-6 h-6 text-rose-600 flex-shrink-0 mt-0.5"></i>
+            <div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-[11px] font-black uppercase tracking-wider bg-rose-600 text-white px-2 py-0.5 rounded">Emergency Warning</span>
+                    {% if alert.department %}
+                    <span class="text-[10px] font-black uppercase tracking-wider bg-slate-900 text-white px-2 py-0.5 rounded">
+                        {{ alert.department.name }}
+                    </span>
+                    {% endif %}
+                    <span class="text-xs text-rose-800 font-semibold">{{ alert.target_audience }}</span>
+                </div>
+                <h3 class="text-base font-bold text-rose-900 mt-1.5">{{ alert.title }}</h3>
+                <p class="text-xs text-rose-800 mt-1 leading-relaxed">{{ alert.content }}</p>
+                {% if alert.valid_until %}
+                <div class="mt-2 text-[11px] font-mono text-rose-700 flex items-center">
+                    <i data-lucide="clock" class="w-3.5 h-3.5 mr-1 text-rose-600"></i>
+                    Valid till: <strong>{{ alert.valid_until|date:"d M Y, h:i A" }}</strong>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="text-right flex-shrink-0">
+            <span class="text-[11px] text-rose-500 font-mono">{{ alert.created_at|date:"d M Y, h:i A" }}</span>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- 2 Column Layout: Schemes & Advisories / My Grievances -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Left: Schemes & Guidance (Col 8) -->
+        <div class="lg:col-span-8 space-y-8">
+            <!-- Welfare Schemes Section -->
+            <div>
+                <div class="flex items-center space-x-2 mb-4 border-b border-slate-200 pb-2">
+                    <i data-lucide="gift" class="w-5 h-5 text-emerald-600"></i>
+                    <h2 class="text-lg font-bold text-slate-900">Government Welfare Schemes & Benefits</h2>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {% for s in schemes %}
+                    <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-emerald-300 transition">
+                        <div>
+                            <div class="flex flex-wrap items-center justify-between gap-1.5 mb-2">
+                                <div class="flex items-center space-x-1.5">
+                                    {% if s.department %}
+                                    <span class="text-[9px] font-black uppercase tracking-wider bg-govblue-100 text-govblue-800 px-1.5 py-0.5 rounded border border-govblue-200">
+                                        {{ s.department.code }}
+                                    </span>
+                                    {% endif %}
+                                    <span class="text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200">
+                                        {{ s.target_audience }}
+                                    </span>
+                                </div>
+                                <span class="text-[10px] text-slate-400">{{ s.created_at|date:"d M Y" }}</span>
+                            </div>
+                            <h3 class="font-bold text-slate-900 text-sm mb-1.5">{{ s.title }}</h3>
+                            <p class="text-xs text-slate-600 leading-relaxed line-clamp-3 mb-2">{{ s.content }}</p>
+
+                            {% if s.benefits %}
+                            <div class="text-[11px] text-emerald-800 bg-emerald-50/80 p-2 rounded-lg border border-emerald-200 mb-2">
+                                <strong class="text-emerald-950 font-bold block mb-0.5">Benefits:</strong>
+                                {{ s.benefits }}
+                            </div>
+                            {% endif %}
+
+                            {% if s.eligibility_criteria %}
+                            <div class="text-[11px] text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-200 mb-2">
+                                <strong class="text-slate-900 font-bold block mb-0.5">Eligibility:</strong>
+                                {{ s.eligibility_criteria }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="pt-2 border-t border-slate-100 mt-2">
+                            {% if s.valid_until %}
+                            <div class="text-[10px] text-amber-700 font-semibold mb-1.5 flex items-center font-mono">
+                                <i data-lucide="calendar" class="w-3 h-3 mr-1"></i> Apply by {{ s.valid_until|date:"d M Y" }}
+                            </div>
+                            {% endif %}
+                            {% if s.scheme_url %}
+                            <a href="{{ s.scheme_url }}" target="_blank" rel="noopener" class="text-xs font-bold text-govblue-700 hover:text-govblue-800 flex items-center">
+                                Apply at Official Portal <i data-lucide="external-link" class="w-3.5 h-3.5 ml-1"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-xs text-slate-500 italic">No welfare schemes currently listed.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Civic Advisories Section -->
+            <div>
+                <div class="flex items-center space-x-2 mb-4 border-b border-slate-200 pb-2">
+                    <i data-lucide="info" class="w-5 h-5 text-govblue-700"></i>
+                    <h2 class="text-lg font-bold text-slate-900">Civic Advisories & Citizen Guidance</h2>
+                </div>
+
+                <div class="space-y-3">
+                    {% for a in advisories %}
+                    <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex items-start space-x-4">
+                        <div class="w-8 h-8 rounded-lg bg-blue-50 text-govblue-700 flex items-center justify-center font-bold flex-shrink-0 mt-0.5">
+                            <i data-lucide="book-open" class="w-4 h-4"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-bold text-slate-900 text-sm">{{ a.title }}</h4>
+                                <span class="text-[10px] text-slate-400">{{ a.created_at|date:"d M Y" }}</span>
+                            </div>
+                            <p class="text-xs text-slate-600 mt-1 leading-relaxed">{{ a.content }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: My Grievances & Quick Contacts (Col 4) -->
+        <div class="lg:col-span-4 space-y-6">
+            <!-- My Grievances Card -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-900 mb-3 flex items-center">
+                    <i data-lucide="clipboard-list" class="w-4 h-4 mr-2 text-govblue-700"></i>
+                    My Grievance History
+                </h3>
+
+                {% if my_complaints %}
+                <div class="space-y-3">
+                    {% for mc in my_complaints %}
+                    <a href="{% url 'track_complaint' mc.ticket_number %}" class="block p-3 rounded-lg border border-slate-100 hover:border-blue-200 hover:bg-slate-50 transition">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-mono text-xs font-bold text-govblue-800">{{ mc.ticket_number }}</span>
+                            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded {% if mc.status in 'RESOLVED,CITIZEN_CONFIRMED' %}bg-emerald-100 text-emerald-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                                {{ mc.get_status_display }}
+                            </span>
+                        </div>
+                        <div class="text-xs font-semibold text-slate-800 line-clamp-1">{{ mc.title }}</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">{{ mc.created_at|date:"d M Y" }}</div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-6 text-xs text-slate-500">
+                    <p>No complaints filed yet from this account.</p>
+                    <a href="{% url 'file_complaint' %}" class="inline-block mt-3 px-4 py-2 bg-govblue-50 text-govblue-700 font-bold rounded-lg hover:bg-govblue-100">
+                        File a New Complaint
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Emergency Helpline Directory -->
+            <div class="bg-slate-900 text-white rounded-2xl p-6 shadow-md">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Emergency Contact Directory</h3>
+                <div class="space-y-3 text-xs">
+                    <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+                        <span class="text-slate-300">GCC Municipal Control Room</span>
+                        <strong class="text-amber-400 text-base font-mono">{% if EMERGENCY_HELPLINE == '1913' or not EMERGENCY_HELPLINE %}1234{% else %}{{ EMERGENCY_HELPLINE }}{% endif %}</strong>
+                    </div>
+                    <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+                        <span class="text-slate-300">CMWSSB (Metro Water & Sewer)</span>
+                        <strong class="text-cyan-400 text-sm font-mono">044-45674567</strong>
+                    </div>
+                    <div class="flex justify-between items-center pb-2 border-b border-slate-800">
+                        <span class="text-slate-300">State Disaster Management</span>
+                        <strong class="text-rose-400 text-sm font-mono">1070</strong>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-300">Police & Women Helpline</span>
+                        <strong class="text-emerald-400 text-sm font-mono">100 / 1091</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

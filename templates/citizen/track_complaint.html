@@ -1,0 +1,590 @@
+{% extends "base.html" %}
+
+{% block title %}Track Grievance - {{ APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <!-- Search Bar -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-8">
+        <h2 class="text-sm font-bold text-slate-700 mb-2">Track Any Grievance Live</h2>
+        <form action="{% url 'track_complaint_search' %}" method="GET" class="flex gap-3">
+            <input type="text" name="ticket" value="{{ query|default:'' }}" placeholder="Enter Ticket Number (e.g. DPIG-2026-GCC-000001)"
+                   class="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-govblue-600 focus:outline-none">
+            <button type="submit" class="px-6 py-2.5 bg-govblue-700 hover:bg-govblue-800 text-white font-bold rounded-xl text-sm transition flex items-center">
+                <i data-lucide="search" class="w-4 h-4 mr-2"></i> Track Status
+            </button>
+        </form>
+    </div>
+
+    {% if complaint %}
+    <!-- Complaint Header Card -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+        <div class="p-6 sm:p-8 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <div class="flex items-center space-x-3 mb-1">
+                    <span class="font-mono text-xs font-black text-govblue-700 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
+                        {{ complaint.ticket_number }}
+                    </span>
+                    <span class="text-xs text-slate-400">Registered: {{ complaint.created_at|date:"d M Y, h:i A" }}</span>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-black text-slate-900">{{ complaint.title }}</h1>
+                {% if complaint.translated_title and complaint.translated_title != complaint.title %}
+                <div class="text-sm font-bold text-govblue-800 mt-0.5 flex items-center">
+                    <span class="text-[10px] font-black uppercase tracking-wider bg-blue-100 text-govblue-800 px-1.5 py-0.5 rounded mr-2">EN</span>
+                    {{ complaint.translated_title }}
+                </div>
+                {% endif %}
+                <div class="text-xs text-slate-500 mt-1">
+                    Zone {{ complaint.zone.number }} ({{ complaint.zone.name }}) • Ward {{ complaint.ward.number }} • {{ complaint.department.name }}
+                </div>
+            </div>
+
+            <div class="flex flex-col items-end gap-1">
+                <span class="text-xs font-black uppercase tracking-wider px-3.5 py-1.5 rounded-full {% if complaint.status == 'CITIZEN_CONFIRMED' %}bg-emerald-100 text-emerald-800{% elif complaint.status == 'RESOLVED' %}bg-green-100 text-green-800{% elif complaint.status == 'ESCALATED' or complaint.status == 'REOPENED' %}bg-rose-100 text-rose-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                    {{ complaint.get_status_display }}
+                </span>
+                <span class="text-[11px] font-bold text-slate-400">Severity: {{ complaint.get_severity_display }}</span>
+            </div>
+        </div>
+
+        <!-- SLA Countdown & Current Workflow Level Banner -->
+        <div class="bg-slate-900 text-white p-4 sm:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-blue-600/30 border border-blue-400/30 flex items-center justify-center text-cyan-300 flex-shrink-0">
+                    <i data-lucide="timer" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Active Stage SLA Window</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                            {{ complaint.current_level }} ({{ complaint.level_sla_hours }}h SLA)
+                        </span>
+                    </div>
+                    <div class="text-sm font-bold text-slate-100 mt-0.5">
+                        {{ complaint.sla_deadline|date:"d M Y, h:i A"|default:"24 Hours Target" }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                {% if complaint.status in 'RESOLVED,CITIZEN_CONFIRMED' %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    <i data-lucide="check-circle" class="w-3.5 h-3.5 mr-1.5"></i> SLA Fulfilled Successfully
+                </span>
+                {% elif complaint.is_overdue %}
+                <div class="text-right">
+                    <div class="text-[11px] text-rose-400 font-bold uppercase tracking-wider">SLA Breached at {{ complaint.current_level }}</div>
+                    <div class="text-xs text-rose-300 font-semibold">Tier {{ complaint.sla_escalation_tier }} Escalation Review</div>
+                </div>
+                {% else %}
+                <div class="text-right">
+                    <div class="text-[11px] text-cyan-300 font-semibold uppercase tracking-wider">Remaining Stage SLA</div>
+                    <div class="text-lg font-black font-mono text-amber-300" id="liveCountdown">
+                        {{ complaint.remaining_sla_seconds }}s
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sequential Workflow Escalation Stepper (as per GCC Complaint Workflow Diagram) -->
+        <div class="p-6 sm:p-8 bg-white border-b border-slate-200">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+                <div>
+                    <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center">
+                        <i data-lucide="shield-alert" class="w-4 h-4 mr-1.5 text-govblue-700"></i>
+                        Sequential Escalation Chain: DL1 &rarr; DL2 &rarr; DL3 &rarr; CL1 &rarr; CL2 &rarr; CL3 &rarr; CM Office
+                    </h4>
+                    <p class="text-[11px] text-slate-400 mt-0.5">
+                        Escalates sequentially if SLA is breached or if citizen reopens grievance. Current Authority: <strong>{{ complaint.current_level_label }}</strong>
+                    </p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs text-slate-500 font-semibold">Current Level:</span>
+                    <span class="px-2.5 py-1 rounded-full text-xs font-black bg-blue-100 text-govblue-900 border border-blue-300">
+                        {{ complaint.current_level }} (Level {{ complaint.escalated_to_level }}/7)
+                    </span>
+                </div>
+            </div>
+
+            <!-- 7-Level Progression Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 text-center">
+                <!-- 1. DL1 -->
+                <div class="p-2.5 rounded-xl border transition {% if complaint.escalated_to_level == 1 %}bg-govblue-50 border-2 border-govblue-600 shadow-sm ring-2 ring-govblue-200{% elif complaint.escalated_to_level > 1 %}bg-emerald-50/70 border-emerald-300{% else %}bg-slate-50 border-slate-200 opacity-50{% endif %}">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[10px] font-black uppercase {% if complaint.escalated_to_level == 1 %}text-govblue-800{% elif complaint.escalated_to_level > 1 %}text-emerald-700{% else %}text-slate-400{% endif %}">DL1</span>
+                        {% if complaint.escalated_to_level > 1 %}
+                        <i data-lucide="check" class="w-3 h-3 text-emerald-600"></i>
+                        {% elif complaint.escalated_to_level == 1 %}
+                        <span class="w-2 h-2 rounded-full bg-govblue-600 animate-pulse"></span>
+                        {% endif %}
+                    </div>
+                    <div class="text-xs font-bold text-slate-800">Dept Level 1</div>
+                    <div class="text-[10px] text-slate-500 truncate" title="Concerned Dept - Zone">Ward/Area Eng</div>
+                    <div class="mt-1 text-[9px] font-semibold text-slate-400">24h SLA</div>
+                </div>
+
+                <!-- 2. DL2 -->
+                <div class="p-2.5 rounded-xl border transition {% if complaint.escalated_to_level == 2 %}bg-govblue-50 border-2 border-govblue-600 shadow-sm ring-2 ring-govblue-200{% elif complaint.escalated_to_level > 2 %}bg-emerald-50/70 border-emerald-300{% else %}bg-slate-50 border-slate-200 opacity-50{% endif %}">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[10px] font-black uppercase {% if complaint.escalated_to_level == 2 %}text-govblue-800{% elif complaint.escalated_to_level > 2 %}text-emerald-700{% else %}text-slate-400{% endif %}">DL2</span>
+                        {% if complaint.escalated_to_level > 2 %}
+                        <i data-lucide="check" class="w-3 h-3 text-emerald-600"></i>
+                        {% elif complaint.escalated_to_level == 2 %}
+                        <span class="w-2 h-2 rounded-full bg-govblue-600 animate-pulse"></span>
+                        {% endif %}
+                    </div>
+                    <div class="text-xs font-bold text-slate-800">Dept Level 2</div>
+                    <div class="text-[10px] text-slate-500 truncate" title="DL1 + 1 (Subdivision)">Asst Exec Eng</div>
+                    <div class="mt-1 text-[9px] font-semibold text-slate-400">24h SLA</div>
+                </div>
+
+                <!-- 3. DL3 -->
+                <div class="p-2.5 rounded-xl border transition {% if complaint.escalated_to_level == 3 %}bg-govblue-50 border-2 border-govblue-600 shadow-sm ring-2 ring-govblue-200{% elif complaint.escalated_to_level > 3 %}bg-emerald-50/70 border-emerald-300{% else %}bg-slate-50 border-slate-200 opacity-50{% endif %}">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[10px] font-black uppercase {% if complaint.escalated_to_level == 3 %}text-govblue-800{% elif complaint.escalated_to_level > 3 %}text-emerald-700{% else %}text-slate-400{% endif %}">DL3</span>
+                        {% if complaint.escalated_to_level > 3 %}
+                        <i data-lucide="check" class="w-3 h-3 text-emerald-600"></i>
+                        {% elif complaint.escalated_to_level == 3 %}
+                        <span class="w-2 h-2 rounded-full bg-govblue-600 animate-pulse"></span>
+                        {% endif %}
+                    </div>
+                    <div class="text-xs font-bold text-slate-800">Dept Level 3</div>
+                    <div class="text-[10px] text-slate-500 truncate" title="DL2 + 1 (Zone Head)">Zonal Officer</div>
+                    <div class="mt-1 text-[9px] font-semibold text-slate-400">24h SLA</div>
+                </div>
+
+                <!-- 4. CL1 -->
+                <div class="p-2.5 rounded-xl border transition {% if complaint.escalated_to_level == 4 %}bg-govblue-50 border-2 border-govblue-600 shadow-sm ring-2 ring-govblue-200{% elif complaint.escalated_to_level > 4 %}bg-emerald-50/70 border-emerald-300{% else %}bg-slate-50 border-slate-200 opacity-50{% endif %}">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[10px] font-black uppercase {% if complaint.escalated_to_level == 4 %}text-govblue-800{% elif complaint.escalated_to_level > 4 %}text-emerald-700{% else %}text-slate-400{% endif %}">CL1</span>
+                        {% if complaint.escalated_to_level > 4 %}
+                        <i data-lucide="check" class="w-3 h-3 text-emerald-600"></i>
+                        {% elif complaint.escalated_to_level == 4 %}
+                        <span class="w-2 h-2 rounded-full bg-govblue-600 animate-pulse"></span>
+                        {% endif %}
+                    </div>
+                    <div class="text-xs font-bold text-slate-800">City Level 1</div>
+                    <div class="text-[10px] text-slate-500 truncate" title="All DL3 + 1 (HQ Dept)">Exec Eng (HQ)</div>
+                    <div class="mt-1 text-[9px] font-semibold text-slate-400">48h SLA</div>
+                </div>
+
+                <!-- 5. CL2 -->
+                <div class="p-2.5 rounded-xl border transition {% if complaint.escalated_to_level == 5 %}bg-govblue-50 border-2 border-govblue-600 shadow-sm ring-2 ring-govblue-200{% elif complaint.escalated_to_level > 5 %}bg-emerald-50/70 border-emerald-300{% else %}bg-slate-50 border-slate-200 opacity-50{% endif %}">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[10px] font-black uppercase {% if complaint.escalated_to_level == 5 %}text-govblue-800{% elif complaint.escalated_to_level > 5 %}text-emerald-700{% else %}text-slate-400{% endif %}">CL2</span>
+                        {% if complaint.escalated_to_level > 5 %}
+                        <i data-lucide="check" class="w-3 h-3 text-emerald-600"></i>
+                        {% elif complaint.escalated_to_level == 5 %}
+                        <span class="w-2 h-2 rounded-full bg-govblue-600 animate-pulse"></span>
+                        {% endif %}
+                    </div>
+                    <div class="text-xs font-bold text-slate-800">City Level 2</div>
+                    <div class="text-[10px] text-slate-500 truncate" title="CL1 + 1 (Chief Eng)">Chief Engineer</div>
+                    <div class="mt-1 text-[9px] font-semibold text-slate-400">48h SLA</div>
+                </div>
+
+                <!-- 6. CL3 -->
+                <div class="p-2.5 rounded-xl border transition {% if complaint.escalated_to_level == 6 %}bg-govblue-50 border-2 border-govblue-600 shadow-sm ring-2 ring-govblue-200{% elif complaint.escalated_to_level > 6 %}bg-emerald-50/70 border-emerald-300{% else %}bg-slate-50 border-slate-200 opacity-50{% endif %}">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[10px] font-black uppercase {% if complaint.escalated_to_level == 6 %}text-govblue-800{% elif complaint.escalated_to_level > 6 %}text-emerald-700{% else %}text-slate-400{% endif %}">CL3</span>
+                        {% if complaint.escalated_to_level > 6 %}
+                        <i data-lucide="check" class="w-3 h-3 text-emerald-600"></i>
+                        {% elif complaint.escalated_to_level == 6 %}
+                        <span class="w-2 h-2 rounded-full bg-govblue-600 animate-pulse"></span>
+                        {% endif %}
+                    </div>
+                    <div class="text-xs font-bold text-slate-800">City Level 3</div>
+                    <div class="text-[10px] text-slate-500 truncate" title="CL2 + 1 (Commissioner)">Commissioner</div>
+                    <div class="mt-1 text-[9px] font-semibold text-slate-400">72h SLA</div>
+                </div>
+
+                <!-- 7. CM Office -->
+                <div class="p-2.5 rounded-xl border transition {% if complaint.escalated_to_level == 7 %}bg-rose-50 border-2 border-rose-600 shadow-sm ring-2 ring-rose-200{% else %}bg-slate-50 border-slate-200 opacity-50{% endif %}">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[10px] font-black uppercase {% if complaint.escalated_to_level == 7 %}text-rose-800{% else %}text-slate-400{% endif %}">CM Office</span>
+                        {% if complaint.escalated_to_level == 7 %}
+                        <span class="w-2 h-2 rounded-full bg-rose-600 animate-pulse"></span>
+                        {% endif %}
+                    </div>
+                    <div class="text-xs font-bold text-slate-800">Apex CM Office</div>
+                    <div class="text-[10px] text-slate-500 truncate" title="Apex Redressal Cell">Special Cell</div>
+                    <div class="mt-1 text-[9px] font-semibold text-slate-400">Final Action</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lifecycle Stepper -->
+        <div class="p-6 sm:p-8 bg-slate-50 border-b border-slate-100">
+            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Grievance State Progression</h4>
+            
+            <div class="grid grid-cols-2 sm:grid-cols-6 gap-3 text-center">
+                <!-- 1. Submitted -->
+                <div class="bg-white p-3 rounded-xl border {% if complaint.status %}border-govblue-600 shadow-sm{% else %}border-slate-200 opacity-50{% endif %}">
+                    <div class="w-7 h-7 mx-auto rounded-full bg-blue-100 text-govblue-700 flex items-center justify-center font-bold text-xs mb-1.5">1</div>
+                    <div class="text-xs font-bold text-slate-800">Intake / Submitted</div>
+                    <div class="text-[10px] text-slate-400">Zone {{ complaint.zone.number }}</div>
+                </div>
+
+                <!-- 2. AI Classified -->
+                <div class="bg-white p-3 rounded-xl border {% if complaint.status not in 'SUBMITTED' %}border-purple-600 shadow-sm{% else %}border-slate-200 opacity-50{% endif %}">
+                    <div class="w-7 h-7 mx-auto rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xs mb-1.5">2</div>
+                    <div class="text-xs font-bold text-slate-800">Dept Identified</div>
+                    <div class="text-[10px] text-slate-400">{{ complaint.department.code|default:"Auto AI" }}</div>
+                </div>
+
+                <!-- 3. Assigned -->
+                <div class="bg-white p-3 rounded-xl border {% if complaint.status in 'ASSIGNED,FIELD_VERIFICATION,RESOLVED,CITIZEN_CONFIRMED,ESCALATED,REOPENED' %}border-cyan-600 shadow-sm{% else %}border-slate-200 opacity-50{% endif %}">
+                    <div class="w-7 h-7 mx-auto rounded-full bg-cyan-100 text-cyan-700 flex items-center justify-center font-bold text-xs mb-1.5">3</div>
+                    <div class="text-xs font-bold text-slate-800">Assigned DL1</div>
+                    <div class="text-[10px] text-slate-400">{{ complaint.current_level }} Active</div>
+                </div>
+
+                <!-- 4. Field Inspection -->
+                <div class="bg-white p-3 rounded-xl border {% if complaint.status in 'FIELD_VERIFICATION,RESOLVED,CITIZEN_CONFIRMED' %}border-amber-600 shadow-sm{% else %}border-slate-200 opacity-50{% endif %}">
+                    <div class="w-7 h-7 mx-auto rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs mb-1.5">4</div>
+                    <div class="text-xs font-bold text-slate-800">Field Work</div>
+                    <div class="text-[10px] text-slate-400">On Ground Fix</div>
+                </div>
+
+                <!-- 5. Resolved -->
+                <div class="bg-white p-3 rounded-xl border {% if complaint.status in 'RESOLVED,CITIZEN_CONFIRMED' %}border-green-600 shadow-sm{% else %}border-slate-200 opacity-50{% endif %}">
+                    <div class="w-7 h-7 mx-auto rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-xs mb-1.5">5</div>
+                    <div class="text-xs font-bold text-slate-800">Resolved</div>
+                    <div class="text-[10px] text-slate-400">Proof Uploaded</div>
+                </div>
+
+                <!-- 6. Confirmed -->
+                <div class="bg-white p-3 rounded-xl border {% if complaint.status == 'CITIZEN_CONFIRMED' %}border-emerald-600 shadow-sm bg-emerald-50/30{% else %}border-slate-200 opacity-50{% endif %}">
+                    <div class="w-7 h-7 mx-auto rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs mb-1.5">6</div>
+                    <div class="text-xs font-bold text-slate-800">Citizen Confirmed</div>
+                    <div class="text-[10px] text-slate-400">Closed / Completed</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grievance Body & Location Details -->
+        <div class="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Left Column: Details -->
+            <div class="space-y-4">
+                <div>
+                    {% if complaint.translation_header %}
+                    <!-- Automated Translation Header Banner -->
+                    <div class="mb-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
+                        <div class="flex items-center space-x-2 text-indigo-900 font-bold text-xs mb-1">
+                            <i data-lucide="languages" class="w-4 h-4 text-indigo-600 flex-shrink-0"></i>
+                            <span>{{ complaint.translation_header }}</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 text-[10px] text-slate-600">
+                            <span class="bg-white px-2 py-0.5 rounded border border-indigo-100 font-semibold">Script: <strong>{{ complaint.script_detected }}</strong></span>
+                            <span class="bg-white px-2 py-0.5 rounded border border-indigo-100 font-mono">Code Points: <strong>{{ complaint.unicode_script_range }}</strong></span>
+                            <span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">Verbatim Text Preserved</span>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Preserved Original Submission -->
+                    <div class="mb-3">
+                        <div class="flex items-center justify-between mb-1">
+                            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center">
+                                <i data-lucide="file-text" class="w-3.5 h-3.5 mr-1 text-slate-500"></i>
+                                Preserved Citizen Submission (Verbatim)
+                            </h4>
+                            <span class="text-[10px] text-slate-400 font-semibold">Original Language: {{ complaint.language_detected|upper }}</span>
+                        </div>
+                        <p class="text-sm text-slate-900 leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-200 font-medium">
+                            {{ complaint.original_description|default:complaint.description }}
+                        </p>
+                    </div>
+
+                    {% if complaint.translated_description and complaint.translated_description != complaint.original_description %}
+                    <!-- Automated English Translation -->
+                    <div class="mb-3">
+                        <div class="flex items-center justify-between mb-1">
+                            <h4 class="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center">
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5 mr-1 text-emerald-600"></i>
+                                Official English Translation (For Municipal Triage)
+                            </h4>
+                            <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">English (en)</span>
+                        </div>
+                        <p class="text-sm text-slate-800 leading-relaxed bg-emerald-50/50 p-3.5 rounded-xl border border-emerald-200">
+                            {{ complaint.translated_description }}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- DIGIPIN Card -->
+                <div class="bg-blue-50/60 p-4 rounded-xl border border-blue-100">
+                    <div class="text-xs text-govblue-700 font-bold uppercase tracking-wider mb-1">Geocoded DIGIPIN</div>
+                    <div class="font-mono text-xl font-black text-govblue-900 tracking-wider">
+                        {{ complaint.digipin|default:"N/A" }}
+                    </div>
+                    <div class="text-[11px] text-slate-500 mt-1">
+                        Coordinates: {{ complaint.latitude }}, {{ complaint.longitude }} (~3.8m precision)
+                    </div>
+                </div>
+
+                <!-- Assigned Officer Info -->
+                <div class="p-4 rounded-xl border border-slate-200 bg-white">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Assigned Officer Details</div>
+                    {% if complaint.current_assignee %}
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-700">
+                            {{ complaint.current_assignee.first_name|first|default:"A" }}
+                        </div>
+                        <div>
+                            <div class="font-bold text-sm text-slate-900">
+                                {{ complaint.current_assignee.get_full_name|default:complaint.current_assignee.username }}
+                            </div>
+                            <div class="text-xs text-slate-500">
+                                {{ complaint.current_assignee.profile.designation|default:"Ward Assistant Engineer" }}
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-xs text-slate-500 italic">Auto-routing in progress via Central Triage Desk...</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Right Column: Location Map & Photos -->
+            <div class="space-y-4">
+                <div class="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div id="trackMap" class="w-full h-48"></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <div class="text-[11px] font-bold text-slate-500 mb-1">Reported Issue Photo</div>
+                        {% if complaint.image %}
+                        <img src="{{ complaint.image.url }}" alt="Issue Proof" class="w-full h-32 object-cover rounded-lg border border-slate-200 shadow-sm">
+                        {% else %}
+                        <div class="w-full h-32 bg-slate-100 rounded-lg flex items-center justify-center text-xs text-slate-400">
+                            No photo attached
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="text-[11px] font-bold text-slate-500 mb-1">Resolution Proof Photo</div>
+                        {% if complaint.resolution_image %}
+                        <img src="{{ complaint.resolution_image.url }}" alt="Resolution Proof" class="w-full h-32 object-cover rounded-lg border border-emerald-300 shadow-sm">
+                        {% else %}
+                        <div class="w-full h-32 bg-slate-100 rounded-lg flex items-center justify-center text-xs text-slate-400">
+                            Awaiting field fix
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Citizen Confirmation & Feedback Action Box -->
+        {% if complaint.status == 'RESOLVED' %}
+        <div class="p-6 sm:p-8 bg-emerald-50/60 border-t border-emerald-200">
+            <h3 class="text-base font-bold text-emerald-900 mb-2 flex items-center">
+                <i data-lucide="check-circle-2" class="w-5 h-5 mr-2 text-emerald-600"></i>
+                Action Required: Confirm Field Resolution
+            </h3>
+            <p class="text-xs text-emerald-800 mb-4 leading-relaxed">
+                The municipal engineering team has marked this issue as resolved. Please review the resolution proof above and confirm to close this ticket.
+            </p>
+
+            <form method="POST" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="confirm_resolution">
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Rate Resolution Quality (1 to 5 Stars)</label>
+                    <select name="rating" class="px-4 py-2 border border-slate-300 rounded-lg text-sm bg-white font-bold text-amber-500">
+                        <option value="5">★★★★★ (5/5) Excellent & Prompt</option>
+                        <option value="4">★★★★☆ (4/5) Good Work</option>
+                        <option value="3">★★★☆☆ (3/5) Satisfactory</option>
+                        <option value="2">★★☆☆☆ (2/5) Below Expectations</option>
+                        <option value="1">★☆☆☆☆ (1/5) Poor</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Citizen Feedback Comments</label>
+                    <textarea name="feedback" rows="2" placeholder="Share your experience with the resolution..."
+                              class="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm bg-white"></textarea>
+                </div>
+
+                <div class="flex flex-wrap gap-3">
+                    <button type="submit" class="px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg text-sm shadow-md transition flex items-center">
+                        <i data-lucide="thumbs-up" class="w-4 h-4 mr-2"></i> Confirm Resolution & Close Ticket
+                    </button>
+                    <button type="button" onclick="document.getElementById('reopenModal').classList.remove('hidden')" class="px-5 py-2.5 bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 font-bold rounded-lg text-sm transition">
+                        Issue Persists? Reopen Grievance
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% elif complaint.status == 'CITIZEN_CONFIRMED' %}
+        <div class="p-6 bg-emerald-50 border-t border-emerald-200 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <i data-lucide="award" class="w-6 h-6 text-emerald-600"></i>
+                <div>
+                    <div class="text-sm font-bold text-emerald-900">Resolution Confirmed by Citizen</div>
+                    <div class="text-xs text-emerald-700">{{ complaint.citizen_feedback|default:"Resolution verified on ground." }}</div>
+                </div>
+            </div>
+            <div class="text-amber-500 font-bold text-lg">
+                {% if complaint.citizen_rating == 5 %}★★★★★
+                {% elif complaint.citizen_rating == 4 %}★★★★☆
+                {% elif complaint.citizen_rating == 3 %}★★★☆☆
+                {% elif complaint.citizen_rating == 2 %}★★☆☆☆
+                {% else %}★☆☆☆☆{% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- SHA-256 Cryptographic Audit Chain Section -->
+        <div class="p-6 sm:p-8 bg-white border-t border-slate-200">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h4 class="text-sm font-black text-slate-900 flex items-center">
+                        <i data-lucide="lock" class="w-4 h-4 mr-1.5 text-govblue-700"></i>
+                        SHA-256 Immutable Audit Hash Chain
+                    </h4>
+                    <span class="text-xs text-slate-500">Every state transition is cryptographically sealed</span>
+                </div>
+                <button type="button" id="btnVerifyChain" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition flex items-center">
+                    <i data-lucide="check-check" class="w-3.5 h-3.5 mr-1 text-emerald-600"></i> Verify Hash Chain
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border border-slate-200 rounded-lg">
+                    <thead class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
+                        <tr>
+                            <th class="p-3">#</th>
+                            <th class="p-3">Action</th>
+                            <th class="p-3">Actor / Role</th>
+                            <th class="p-3">Timestamp</th>
+                            <th class="p-3 font-mono">Current SHA-256 Hash</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for log in complaint.audit_logs.all %}
+                        <tr class="hover:bg-slate-50/80">
+                            <td class="p-3 font-bold text-slate-500">{{ forloop.counter }}</td>
+                            <td class="p-3 font-semibold text-slate-900">{{ log.action }}</td>
+                            <td class="p-3 text-slate-600">{{ log.actor_role }}</td>
+                            <td class="p-3 text-slate-400">{{ log.created_at|date:"d M Y, h:i A" }}</td>
+                            <td class="p-3 font-mono text-[11px] text-govblue-800" title="{{ log.current_hash }}">
+                                {{ log.current_hash|slice:":16" }}...{{ log.current_hash|slice:"-8:" }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div id="chainVerificationResult" class="mt-3 text-xs font-bold text-emerald-700 hidden"></div>
+        </div>
+    </div>
+    {% elif query %}
+    <div class="text-center py-16 bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
+        <i data-lucide="help-circle" class="w-12 h-12 mx-auto text-slate-400 mb-3"></i>
+        <h3 class="text-base font-bold text-slate-800">No Grievance Found</h3>
+        <p class="text-xs text-slate-500 mt-1">We couldn't locate any ticket with number "{{ query }}". Please check your entry.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Reopen Modal -->
+<div id="reopenModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+        <div class="flex items-center space-x-2.5 mb-2">
+            <div class="w-8 h-8 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-sm">
+                <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900">Reopen & Sequential Escalation</h3>
+        </div>
+        <p class="text-xs text-slate-600 mb-3 leading-relaxed">
+            Not satisfied with the field resolution? Reopening will automatically escalate this grievance from <strong>{{ complaint.current_level }}</strong> to the next administrative tier:
+        </p>
+        <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl mb-4 text-xs">
+            <div class="font-bold text-rose-900 flex items-center justify-between">
+                <span>Next Supervisory Authority:</span>
+                <span class="bg-rose-200 text-rose-900 px-2 py-0.5 rounded font-black">
+                    {% if complaint.get_next_escalation_level %}{{ complaint.get_next_escalation_level }}{% else %}CM Office (Apex Review){% endif %}
+                </span>
+            </div>
+            <div class="text-[11px] text-rose-700 mt-1">
+                A new expedited SLA countdown will be initiated for supervisory review.
+            </div>
+        </div>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="reopen">
+            <label class="block text-xs font-bold text-slate-700 mb-1">State Reason for Reopening *</label>
+            <textarea name="reopen_reason" rows="3" required placeholder="Describe why the work done is unsatisfactory (e.g. pothole was only partially patched; waterlogging still occurs)..."
+                      class="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm mb-4 focus:ring-2 focus:ring-rose-500 focus:outline-none"></textarea>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="document.getElementById('reopenModal').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+                <button type="submit" class="px-5 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-sm">
+                    Reopen & Escalate (+1 Level)
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if complaint %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Map with Humanitarian OpenStreetMap (Zero API key, reliable CDN)
+        const lat = parseFloat("{{ complaint.latitude }}") || 13.0827;
+        const lng = parseFloat("{{ complaint.longitude }}") || 80.2707;
+        const map = L.map('trackMap').setView([lat, lng], 15);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            subdomains: 'abc',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/" target="_blank">Humanitarian OpenStreetMap Team</a> | India Post DIGIPIN'
+        }).addTo(map);
+
+        L.marker([lat, lng]).addTo(map).bindPopup("<b>{{ complaint.ticket_number }}</b><br>{{ complaint.digipin }}").openPopup();
+
+        // Live Countdown calculation
+        let seconds = parseInt("{{ complaint.remaining_sla_seconds }}") || 0;
+        const timerEl = document.getElementById('liveCountdown');
+        if (timerEl && seconds > 0) {
+            setInterval(function() {
+                if (seconds > 0) {
+                    seconds--;
+                    const h = Math.floor(seconds / 3600);
+                    const m = Math.floor((seconds % 3600) / 60);
+                    const s = seconds % 60;
+                    timerEl.innerText = `${h}h ${m}m ${s}s`;
+                } else {
+                    timerEl.innerText = "SLA BREACHED";
+                    timerEl.classList.add("text-rose-400");
+                }
+            }, 1000);
+        }
+
+        // Verify Hash Chain API
+        document.getElementById('btnVerifyChain').addEventListener('click', function() {
+            fetch(`/api/verify-audit/{{ complaint.ticket_number }}/`)
+                .then(r => r.json())
+                .then(data => {
+                    const resEl = document.getElementById('chainVerificationResult');
+                    resEl.classList.remove('hidden');
+                    if (data.is_chain_intact) {
+                        resEl.innerText = `✓ Cryptographic Audit Verified: All ${data.total_blocks} blocks sealed with valid SHA-256 hash chaining. Chain intact.`;
+                        resEl.className = "mt-3 text-xs font-bold text-emerald-700 bg-emerald-50 p-2.5 rounded-lg border border-emerald-200";
+                    } else {
+                        resEl.innerText = "⚠ Warning: Hash chain mismatch detected in audit logs.";
+                        resEl.className = "mt-3 text-xs font-bold text-rose-700 bg-rose-50 p-2.5 rounded-lg border border-rose-200";
+                    }
+                });
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}
